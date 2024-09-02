@@ -88,3 +88,21 @@ bool rect_intersect(rect_t* r1, rect_t* r2) {
     int bottom = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
     return left <= right && top <= bottom;
 }
+
+void quadtree_query(node_t* node, rect_t* search_area, int* count) {
+    if (!rect_intersect(&node->boundary, search_area))
+        return;
+    // If the node is a leaf and the boundary overlaps with the search area, count the points
+    if (node_is_leaf(node)) {
+        for (int i = 0; i < node->count; ++i) {
+            if (point_in_rect(&node->points[i], search_area))
+                (*count)++;
+        }
+    } else {
+        quadtree_query(node->nw, search_area, count);
+        quadtree_query(node->ne, search_area, count);
+        quadtree_query(node->sw, search_area, count);
+        quadtree_query(node->se, search_area, count);
+    }
+}
+

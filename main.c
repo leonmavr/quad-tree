@@ -15,7 +15,11 @@ int main() {
 
     rect_t r1 = {10, 10, 20, 20}, r2 = {21, 21, 24, 24}, r3 = {2, 2, 11, 11}, r4 = {19, 19, 23, 23};
     bool i1 = rect_intersect(&r1, &r2), i2 = rect_intersect(&r1, &r3), i3 = rect_intersect(&r1, &r4);
-    printf("%d, %d, %d", i1, i2, i3);
+    printf("%d, %d, %d\n", i1, i2, i3);
+    int count = 0;
+    rect_t search = {11, 19, 200, 200};
+    quadtree_query(qtree.root, &search, &count);
+    printf("search: %d\n", count);
     return 0;
 
 }

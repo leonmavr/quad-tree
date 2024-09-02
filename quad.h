@@ -54,5 +54,7 @@ bool node_is_leaf(node_t* node);
 void node_insert(node_t* node, point_t* point);
 
 bool rect_intersect(rect_t* r1, rect_t* r2);
+void quadtree_query(node_t* node, rect_t* search_area, int* count);
+
 
 #endif // QUAD_H
