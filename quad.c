@@ -9,7 +9,7 @@ node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
     node->boundary = *boundary;
     node->count = 0;
-    node->points = malloc(CAPACITY * sizeof(point_t));
+    node->points = malloc(g_capacity * sizeof(point_t));
     node->nw = NULL;
     node->ne = NULL;
     node->sw = NULL;
@@ -41,13 +41,12 @@ int point_get_quadrant(rect_t* rect, point_t* point) {
     return -1; // error - not in rectangle
 }
 
-
 bool node_is_leaf(node_t* node) {
     return node->nw == NULL && node->ne == NULL && node->se == NULL && node->sw == NULL;
 }
 
-void quadtree_insert(node_t* node, point_t* point) {
-    if (node->count < CAPACITY && node_is_leaf(node)) {
+void node_insert(node_t* node, point_t* point) {
+    if (node->count < g_capacity && node_is_leaf(node)) {
         node->points[node->count++] = *point;
     } else {
         // Divide the current node into four sub-regions if it's a leaf and not yet divided
@@ -62,10 +61,10 @@ void quadtree_insert(node_t* node, point_t* point) {
             for (int i = 0; i < node->count; ++i) {
                 point_t existing_point = node->points[i];
                 int quadrant = point_get_quadrant(&node->boundary, &existing_point);
-                if (quadrant == IND_NW) quadtree_insert(node->nw, &existing_point);
-                else if (quadrant == IND_NE) quadtree_insert(node->ne, &existing_point);
-                else if (quadrant == IND_SE) quadtree_insert(node->se, &existing_point);
-                else if (quadrant == IND_SW) quadtree_insert(node->sw, &existing_point);
+                if (quadrant == IND_NW) node_insert(node->nw, &existing_point);
+                else if (quadrant == IND_NE) node_insert(node->ne, &existing_point);
+                else if (quadrant == IND_SE) node_insert(node->se, &existing_point);
+                else if (quadrant == IND_SW) node_insert(node->sw, &existing_point);
             }
             // Parent node has moved its data to the children 
             node->count = 0;
@@ -73,9 +72,19 @@ void quadtree_insert(node_t* node, point_t* point) {
 
         // Insert the new point into the appropriate child node
         int quadrant = point_get_quadrant(&node->boundary, point);
-        if (quadrant == IND_NW) quadtree_insert(node->nw, point);
-        else if (quadrant == IND_NE) quadtree_insert(node->ne, point);
-        else if (quadrant == IND_SE) quadtree_insert(node->se, point);
-        else if (quadrant == IND_SW) quadtree_insert(node->sw, point);
+        if (quadrant == IND_NW) node_insert(node->nw, point);
+        else if (quadrant == IND_NE) node_insert(node->ne, point);
+        else if (quadrant == IND_SE) node_insert(node->se, point);
+        else if (quadrant == IND_SW) node_insert(node->sw, point);
     }
+}
+
+bool rect_intersect(rect_t* r1, rect_t* r2) {
+    // the max of the left edges and the min of the right edges
+    int left   = r1->x0 > r2->x0 ? r1->x0 : r2->x0;
+    int right  = r1->x1 < r2->x1 ? r1->x1 : r2->x1;
+    // the max of the top edges and the min of the bottom edges
+    int top    = r1->y0 > r2->y0 ? r1->y0 : r2->y0;
+    int bottom = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
+    return left <= right && top <= bottom;
 }

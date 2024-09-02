@@ -7,7 +7,8 @@
 #define IND_NE 1
 #define IND_SE 2
 #define IND_SW 3
-#define CAPACITY 2  // Maximum number of points per node
+
+static int g_capacity = 2;  // Maximum number of points per node
 
 typedef struct point_t {
     int x;
@@ -50,6 +51,8 @@ node_t* node_new(rect_t* boundary);
 void rect_divide(rect_t* src, rect_t* dest);
 int point_get_quadrant(rect_t* rect, point_t* point);
 bool node_is_leaf(node_t* node);
-void quadtree_insert(node_t* node, point_t* point);
+void node_insert(node_t* node, point_t* point);
+
+bool rect_intersect(rect_t* r1, rect_t* r2);
 
 #endif // QUAD_H
