@@ -189,3 +189,22 @@ void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, d
     }
 }
 
+void node_remove_point(node_t* node, point_t* point) {
+    if (node_is_leaf(node)) {
+        for (int i = 0; i < node->count; ++i) {
+            if (node->points[i].x == point->x && node->points[i].y == point->y) {
+                // shift last point into deleted point
+                node->points[i] = node->points[--node->count];
+                return;
+            }
+        }
+    } else {
+        // search top-down
+        int quadrant = point_get_quadrant(&node->boundary, point);
+        if (quadrant == IND_NW) node_remove_point(node->nw, point);
+        else if (quadrant == IND_NE) node_remove_point(node->ne, point);
+        else if (quadrant == IND_SE) node_remove_point(node->se, point);
+        else if (quadrant == IND_SW) node_remove_point(node->sw, point);
+    }
+}
+

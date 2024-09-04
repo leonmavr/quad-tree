@@ -34,6 +34,7 @@ int main() {
     node_insert(qtree.root, &p3);
     node_insert(qtree.root, &p4);
     node_insert(qtree.root, &p5);
+    node_remove_point(qtree.root, &p4);
 
     point_t query_point = {25, 30};
     point_t nearest_point;
