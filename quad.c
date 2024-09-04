@@ -158,7 +158,7 @@ double point_rect_distsq(point_t* p, rect_t* rect) {
     */
     int dx = MAX(MAX(rect->x0 - p->x, 0), p->x - rect->x1);
     int dy = MAX(MAX(rect->y0 - p->y, 0), p->y - rect->y1);
-    return sqrt(dx * dx + dy * dy);
+    return dx * dx + dy * dy;
 }
 
 void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared) {
