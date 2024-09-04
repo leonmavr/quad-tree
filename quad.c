@@ -5,6 +5,9 @@
 #include <math.h>
 #include <assert.h>
 
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+
 node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
     node->boundary = *boundary;
@@ -103,6 +106,85 @@ void quadtree_query(node_t* node, rect_t* search_area, int* count) {
         quadtree_query(node->ne, search_area, count);
         quadtree_query(node->sw, search_area, count);
         quadtree_query(node->se, search_area, count);
+    }
+}
+
+double distance(point_t* p1, point_t* p2) {
+    return sqrt((p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y));
+}
+
+double point_to_rect_distance(point_t* p, rect_t* rect) {
+   /*
+    * Why the formula max(x0 - x, x - x1, 0)^2 +
+    * max(y0 - y, y - y1, 0)^2 works for the distance between a
+    * point and a rectangle.
+    *
+    * Case 1 (next to)
+    * ==========================================================
+    * (x0, y0)                            x0 - x < 0, x - x1 > 0
+    *  +-----------------+                y0 - y < 0. y - y1 < 0
+    *  |                 |                d = dx = x - x1
+    *  |                 |     * (x, y)
+    *  |                 |<---->         
+    *  |                 |  dx
+    *  +-----------------+
+    *                 (x1, y1)
+    * 
+    * Case 2 (above/below)
+    * ==========================================================
+    *             * (x, y)
+    *             ^                           
+    *          dy |                            
+    *(x0, y0)     v                       x0 - x < 0, x - x1 < 0
+    * +-----------------+                 y0 - y > 0. y - y1 < 0
+    * |                 |                 d = dy = y0 - y
+    * |                 | 
+    * |                 |
+    * |                 |
+    * +-----------------+
+    *  
+    * Case 3 (diagonally)
+    * ==========================================================
+    * (x0, y0)                            x0 - x < 0, x - x1 > 0
+    *  +-----------------+                y0 - y < 0. y - y1 > 0
+    *  |                 |                d^2 = dx^2 + dy^2
+    *  |                 |                    = (x-x1)^2 + (y-y1)^2
+    *  |                 |
+    *  |                 |   dx
+    *  +-----------------+<------>
+    *                 (x1, y1)   ^
+    *                            | dy
+    *                            v
+    */
+    int dx = MAX(MAX(rect->x0 - p->x, 0), p->x - rect->x1);
+    int dy = MAX(MAX(rect->y0 - p->y, 0), p->y - rect->y1);
+    return sqrt(dx * dx + dy * dy);
+}
+
+void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist) {
+    if (!node) return;
+
+    if (node_is_leaf(node)) {
+        for (int i = 0; i < node->count; ++i) {
+            double dist = distance(query, &node->points[i]);
+            if (dist < *best_dist) {
+                *best_dist = dist;
+                *nearest = node->points[i];
+            }
+        }
+    } else {
+        int quadrant = point_get_quadrant(&node->boundary, query);
+        node_t* children[4] = {node->nw, node->ne, node->sw, node->se};
+        // search the quadrant containing the query point first to prune
+        // as fast as possible
+        quadtree_nearest_neighbor(children[quadrant], query, nearest, best_dist);
+        for (int i = 0; i < 4; ++i) {
+            if (i == quadrant) continue;
+            double dist_to_region = point_to_rect_distance(query, &children[i]->boundary);
+            if (dist_to_region < *best_dist)
+                quadtree_nearest_neighbor(children[i], query, nearest, best_dist);
+            // otherwise the node and its children are not searched (pruned)
+        }
     }
 }
 
