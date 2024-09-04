@@ -56,9 +56,7 @@ void node_insert(node_t* node, point_t* point);
 bool rect_intersect(rect_t* r1, rect_t* r2);
 void quadtree_query(node_t* node, rect_t* search_area, int* count);
 
-void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist);
-
-double distance(point_t* p1, point_t* p2);
-
+void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared);
+//double distance(point_t* p1, point_t* p2);
 double point_to_rect_distance(point_t* p, rect_t* rect);
 #endif // QUAD_H

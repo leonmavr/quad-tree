@@ -7,6 +7,10 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+static double distance_sq(point_t* p1, point_t* p2) {
+    return (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
+}
+
 
 node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
@@ -109,11 +113,7 @@ void quadtree_query(node_t* node, rect_t* search_area, int* count) {
     }
 }
 
-double distance(point_t* p1, point_t* p2) {
-    return sqrt((p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y));
-}
-
-double point_to_rect_distance(point_t* p, rect_t* rect) {
+double point_rect_distsq(point_t* p, rect_t* rect) {
    /*
     * Why the formula max(x0 - x, x - x1, 0)^2 +
     * max(y0 - y, y - y1, 0)^2 works for the distance between a
@@ -161,29 +161,30 @@ double point_to_rect_distance(point_t* p, rect_t* rect) {
     return sqrt(dx * dx + dy * dy);
 }
 
-void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist) {
+void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared) {
     if (!node) return;
 
     if (node_is_leaf(node)) {
         for (int i = 0; i < node->count; ++i) {
-            double dist = distance(query, &node->points[i]);
-            if (dist < *best_dist) {
-                *best_dist = dist;
+            double dist = distance_sq(query, &node->points[i]);
+            if (dist < *best_dist_squared) {
+                *best_dist_squared = dist;
                 *nearest = node->points[i];
             }
         }
     } else {
         int quadrant = point_get_quadrant(&node->boundary, query);
         node_t* children[4] = {node->nw, node->ne, node->sw, node->se};
-        // search the quadrant containing the query point first to prune
-        // as fast as possible
-        quadtree_nearest_neighbor(children[quadrant], query, nearest, best_dist);
+        // 1. Narrow down to the quadrant containing the query point first
+        //    to prune as fast as possible
+        quadtree_nearest_neighbor(children[quadrant], query, nearest, best_dist_squared);
+        // 2. Search neighboring nodes from top to bottom
         for (int i = 0; i < 4; ++i) {
             if (i == quadrant) continue;
-            double dist_to_region = point_to_rect_distance(query, &children[i]->boundary);
-            if (dist_to_region < *best_dist)
-                quadtree_nearest_neighbor(children[i], query, nearest, best_dist);
-            // otherwise the node and its children are not searched (pruned)
+            double dist_to_region = point_rect_distsq(query, &children[i]->boundary);
+            // 3. If a node is too far away, prune (skip) it and all its children
+            if (dist_to_region < *best_dist_squared)
+                quadtree_nearest_neighbor(children[i], query, nearest, best_dist_squared);
         }
     }
 }

@@ -1,6 +1,7 @@
 #include "quad.h"
 #include <stdio.h>
 #include <limits.h>
+#include <math.h>
 
 int main() {
 #if 0
@@ -39,8 +40,8 @@ int main() {
     double best_dist = INT_MAX;
     quadtree_nearest_neighbor(qtree.root, &query_point, &nearest_point, &best_dist);
 
-    printf("Nearest Point to (%d, %d): (%d, %d) with Distance: %.2f\n",
-           query_point.x, query_point.y, nearest_point.x, nearest_point.y, best_dist);
+    printf("nearest point to (%d, %d): (%d, %d) with distance: %.2f\n",
+           query_point.x, query_point.y, nearest_point.x, nearest_point.y, sqrt(best_dist));
 
     return 0;
 #endif
