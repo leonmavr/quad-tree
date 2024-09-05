@@ -60,5 +60,6 @@ void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, d
 //double distance(point_t* p1, point_t* p2);
 double point_to_rect_distance(point_t* p, rect_t* rect);
 void node_remove_point(node_t* node, point_t* point);
+void node_merge(node_t* node);
 
 #endif // QUAD_H

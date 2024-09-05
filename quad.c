@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <assert.h>
+#include <string.h>
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -49,7 +50,7 @@ int point_get_quadrant(rect_t* rect, point_t* point) {
 }
 
 bool node_is_leaf(node_t* node) {
-    return node->nw == NULL && node->ne == NULL && node->se == NULL && node->sw == NULL;
+    return (node != NULL) ? (node->nw == NULL && node->ne == NULL && node->se == NULL && node->sw == NULL) : false;
 }
 
 void node_insert(node_t* node, point_t* point) {
@@ -205,6 +206,43 @@ void node_remove_point(node_t* node, point_t* point) {
         else if (quadrant == IND_NE) node_remove_point(node->ne, point);
         else if (quadrant == IND_SE) node_remove_point(node->se, point);
         else if (quadrant == IND_SW) node_remove_point(node->sw, point);
+    }
+}
+
+
+void node_merge(node_t* node) {
+    if (node_is_leaf(node)) return;
+    // if a child is a leaf, collect its points, else keep searching
+    node_t* children[4] = {node->nw, node->ne, node->se, node->sw};
+    int point_count = 0;
+    for (int i = 0; i < 4; ++i) {
+        if (!node_is_leaf) 
+            node_merge(node);
+        else
+            point_count += children[i]->count;
+    }
+    // if the total points fit within the capacity, merge them into parent
+    if (point_count <= g_capacity) {
+        for (int i = 0; i < 4; ++i)
+            if (!node_is_leaf(children[i])) node_merge(children[i]);
+        int ipoint = 0;
+        for (int i = 0; i < node->nw->count; ++i)
+            memcpy(&node->points[ipoint++], &node->nw->points[i], sizeof(node->points[0]));
+        for (int i = 0; i < node->ne->count; ++i)
+            memcpy(&node->points[ipoint++], &node->ne->points[i], sizeof(node->points[0]));
+        for (int i = 0; i < node->se->count; ++i)
+            memcpy(&node->points[ipoint++], &node->se->points[i], sizeof(node->points[0]));
+        for (int i = 0; i < node->sw->count; ++i)
+            memcpy(&node->points[ipoint++], &node->sw->points[i], sizeof(node->points[0]));
+        node->count = point_count;
+        // cleanup
+        for (int i = 0; i < node->count; ++i) {
+            if (children[i] != NULL) {
+                free(children[i]->points);
+                free(children[i]);
+                children[i] = NULL;
+            }
+        }
     }
 }
 
