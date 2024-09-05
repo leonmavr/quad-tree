@@ -223,23 +223,20 @@ void node_merge(node_t* node) {
     }
     // if the total points fit within the capacity, merge them into parent
     if (point_count <= g_capacity) {
-        for (int i = 0; i < 4; ++i)
-            if (!node_is_leaf(children[i])) node_merge(children[i]);
         int ipoint = 0;
-        for (int i = 0; i < node->nw->count; ++i)
-            memcpy(&node->points[ipoint++], &node->nw->points[i], sizeof(node->points[0]));
-        for (int i = 0; i < node->ne->count; ++i)
-            memcpy(&node->points[ipoint++], &node->ne->points[i], sizeof(node->points[0]));
-        for (int i = 0; i < node->se->count; ++i)
-            memcpy(&node->points[ipoint++], &node->se->points[i], sizeof(node->points[0]));
-        for (int i = 0; i < node->sw->count; ++i)
-            memcpy(&node->points[ipoint++], &node->sw->points[i], sizeof(node->points[0]));
+        for (int i = 0; i < 4; ++i) {
+            if (!node_is_leaf(children[i]))
+                node_merge(children[i]);
+            for (int j = 0; j < children[i]->count; ++j)
+                memcpy(&node->points[ipoint++], &children[i]->points[j], sizeof(node->points[0]));
+        }
         node->count = point_count;
         // cleanup
         for (int i = 0; i < node->count; ++i) {
             if (children[i] != NULL) {
                 free(children[i]->points);
                 free(children[i]);
+                // to make parent a leaf
                 children[i] = NULL;
             }
         }
