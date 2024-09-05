@@ -4,7 +4,7 @@
 #include <math.h>
 
 int main() {
-#if 0
+#if 1
     quadtree_t qtree;    
     rect_t region = (rect_t) {0, 0, 200, 200};
     qtree.root = node_new(&region);
@@ -21,6 +21,11 @@ int main() {
     printf("%d, %d, %d\n", i1, i2, i3);
     int count = 0;
     rect_t search = {11, 19, 200, 200};
+    quadtree_query(qtree.root, &search, &count);
+    printf("search: %d\n", count);
+    point_t pnew = {42, 42};
+    qtree_update_point(&qtree, &p3, &pnew);
+    count = 0;
     quadtree_query(qtree.root, &search, &count);
     printf("search: %d\n", count);
     return 0;

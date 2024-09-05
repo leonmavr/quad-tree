@@ -211,7 +211,8 @@ void node_remove_point(node_t* node, point_t* point) {
 
 
 void node_merge(node_t* node) {
-    if (node_is_leaf(node)) return;
+    if (node_is_leaf(node))
+        return;
     // if a child is a leaf, collect its points, else keep searching
     node_t* children[4] = {node->nw, node->ne, node->se, node->sw};
     int point_count = 0;
@@ -243,3 +244,12 @@ void node_merge(node_t* node) {
     }
 }
 
+void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point) {
+    node_t* root = qtree->root;
+    node_remove_point(root, old_point);
+    old_point->x = new_point->x;
+    old_point->y = new_point->y;
+    node_insert(root, old_point);
+    // TODO: merge only needs to be called periodically if a lot of points got removed
+    //node_merge(root);
+}
