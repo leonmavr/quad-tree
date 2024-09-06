@@ -216,12 +216,8 @@ void node_merge(node_t* node) {
     // if a child is a leaf, collect its points, else keep searching
     node_t* children[4] = {node->nw, node->ne, node->se, node->sw};
     int point_count = 0;
-    for (int i = 0; i < 4; ++i) {
-        if (!node_is_leaf) 
-            node_merge(node);
-        else
-            point_count += children[i]->count;
-    }
+    for (int i = 0; i < 4; ++i)
+        point_count += children[i]->count;
     // if the total points fit within the capacity, merge them into parent
     if (point_count <= g_capacity) {
         int ipoint = 0;

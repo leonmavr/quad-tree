@@ -4,7 +4,7 @@
 #include <math.h>
 
 int main() {
-#if 1
+#if 0
     quadtree_t qtree;    
     rect_t region = (rect_t) {0, 0, 200, 200};
     qtree.root = node_new(&region);
