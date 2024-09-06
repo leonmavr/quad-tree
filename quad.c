@@ -253,3 +253,16 @@ void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_poin
     // TODO: merge only needs to be called periodically if a lot of points got removed
     //node_merge(root);
 }
+
+void qtree_delete(node_t* node) {
+    if (node == NULL)
+        return;
+    qtree_delete(node->nw);
+    qtree_delete(node->ne);
+    qtree_delete(node->sw);
+    qtree_delete(node->se);
+    if (node != NULL) {
+        free(node->points);
+        free(node);
+    }
+}

@@ -28,6 +28,7 @@ int main() {
     count = 0;
     quadtree_query(qtree.root, &search, &count);
     printf("search: %d\n", count);
+    qtree_delete(qtree.root);
     return 0;
 #else
 #if 0 
