@@ -2,10 +2,10 @@ CC = gcc
 TARGET = demo 
 SRC_DIR = src
 INC_DIR = include
-CFLAGS = -I$(INC_DIR) -Wall
+CFLAGS = -g -I$(INC_DIR) -Wall
 LDFLAGS = -lm
 DEMO_SRC = main.c 
-TEST_SRC = test/tests.c
+TEST_SRC = test/test.c
 SRC = $(wildcard $(SRC_DIR)/*.c) $(DEMO_SRC)
 
 # Compare cmd arguments; if `test`, extend it to handle unit tests
