@@ -38,17 +38,6 @@ typedef struct quadtree_t {
     node_t* root;
 } quadtree_t;
 
-
-
-static bool point_in_rect(point_t* point, rect_t* boundary) {
-    return point->x >= boundary->x0 && point->x <= boundary->x1 &&
-           point->y >= boundary->y0 && point->y <= boundary->y1;
-}
-
-static int rect_area(rect_t* rect) {
-    return abs(rect->x0 - rect->x1) * abs(rect->y0 - rect->y1);
-}
-
 node_t* node_new(rect_t* boundary);
 void rect_divide(rect_t* src, rect_t* dest);
 int point_get_quadrant(rect_t* rect, point_t* point);
