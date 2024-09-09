@@ -254,8 +254,6 @@ void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_poin
     old_point->x = new_point->x;
     old_point->y = new_point->y;
     node_insert(root, old_point);
-    // TODO: merge only needs to be called periodically if a lot of points got removed
-    //node_merge(root);
 }
 
 void qtree_delete(node_t* node) {

@@ -40,6 +40,13 @@ int main(int argc, char** argv) {
     NTEST_ASSERT(3.99 <= dist_nearest_squared && dist_nearest_squared <= 4.01);
     NTEST_ASSERT(nearest.x == 160 && nearest.y == 80);
     //-------------------------------------------------------------------------
+    // Rectangular query
+    //-------------------------------------------------------------------------
+    int how_many = 0;
+    rect_t search_area = {100, 50, 200, 100};
+    quadtree_query(qtree.root, &search_area, &how_many);
+    NTEST_ASSERT(how_many == 4);
+    //-------------------------------------------------------------------------
     // Update point 
     //-------------------------------------------------------------------------
     point_t pnew = {90, 90};
@@ -50,9 +57,17 @@ int main(int argc, char** argv) {
     //-------------------------------------------------------------------------
     // Merge
     //-------------------------------------------------------------------------
-    // now sw->nw should have one point and so should sw->ne, hence mergeable
-    //node_merge(qtree.root);
-    //NTEST_ASSERT(qtree.root->sw->count == 2);
-    // assert that 90, 90 has moved to nw->sw
+    // now sw->nw should have one point and so should sw->ne; mergeable into sw
+    node_merge(qtree.root);
+    // p7, p8 should have propagated up into sw
+    NTEST_ASSERT(qtree.root->sw->count == 2);
+    NTEST_ASSERT((are_points_equal(&qtree.root->sw->points[1], &points[7]) &&
+        are_points_equal(&qtree.root->sw->points[0], &points[8])) ||
+        (are_points_equal(&qtree.root->sw->points[0], &points[8]) &&
+        are_points_equal(&qtree.root->sw->points[1], &points[7])));
+    //-------------------------------------------------------------------------
+    // Point deletion
+    //-------------------------------------------------------------------------
+    // TODO 
     return 0;
 }
