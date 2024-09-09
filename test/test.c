@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     double dist_nearest_squared = INT_MAX;
     quadtree_nearest_neighbor(qtree.root, &query, &nearest, &dist_nearest_squared);
     NTEST_ASSERT(3.99 <= dist_nearest_squared && dist_nearest_squared <= 4.01);
-    NTEST_ASSERT(nearest.x == 160 && nearest.y == 80);
+    NTEST_ASSERT(nearest.id == points[4].id);
     //-------------------------------------------------------------------------
     // Rectangular query
     //-------------------------------------------------------------------------
@@ -69,8 +69,7 @@ int main(int argc, char** argv) {
     //-------------------------------------------------------------------------
     point_t pnew = {90, 90};
     qtree_update_point(&qtree, &points[6], &pnew);
-    NTEST_ASSERT(qtree.root->nw->sw->points[0].x == pnew.x &&
-        qtree.root->nw->sw->points[0].y == pnew.y);
+    NTEST_ASSERT(qtree.root->nw->sw->points[0].id == pnew.id);
     NTEST_ASSERT(qtree.root->sw->ne->count == 1 && qtree.root->nw->sw->count == 1);
     //-------------------------------------------------------------------------
     // Merge
