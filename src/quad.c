@@ -18,6 +18,8 @@ node_t* node_new(rect_t* boundary) {
     node->boundary = *boundary;
     node->count = 0;
     node->points = malloc(g_capacity * sizeof(point_t));
+    for (int i = 0; i < g_capacity; ++i)
+        node->points[i].id = g_point_id++;
     node->nw = NULL;
     node->ne = NULL;
     node->sw = NULL;
@@ -77,8 +79,7 @@ void node_insert(node_t* node, point_t* point) {
             // Parent node has moved its data to the children 
             node->count = 0;
         }
-
-        // Insert the new point into the appropriate child node
+        // keep searching top-down
         int quadrant = point_get_quadrant(&node->boundary, point);
         if (quadrant == IND_NW) node_insert(node->nw, point);
         else if (quadrant == IND_NE) node_insert(node->ne, point);
@@ -193,7 +194,7 @@ void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, d
 void node_remove_point(node_t* node, point_t* point) {
     if (node_is_leaf(node)) {
         for (int i = 0; i < node->count; ++i) {
-            if (node->points[i].x == point->x && node->points[i].y == point->y) {
+            if (node->points[i].id == point->id) {
                 // shift last point into deleted point
                 node->points[i] = node->points[--node->count];
                 return;

@@ -4,7 +4,7 @@
 #include <limits.h>
 
 static bool are_points_equal(point_t* p1, point_t* p2) {
-    return p1->x == p2->x && p1->y == p2 ->y;
+    return p1->id == p2->id;
 }   
 
 int main(int argc, char** argv) {
@@ -13,6 +13,24 @@ int main(int argc, char** argv) {
     rect_t boundary = {0, 0, 400, 200};
     point_t points[10] = {{51, 25}, {20, 49}, {199, 62}, {160, 70}, {160, 80},
         {110, 90}, {108, 120}, {180, 143}, {0, 149}, {330, 190}};
+    /*
+     *
+     *   +--------+--------+----------------+
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   |
+     *   +--------+--------+----------------+
+     *
+     */
     quadtree_t qtree;
     qtree.root = node_new(&boundary);   
     for (int i = 0; i < sizeof(points)/sizeof(points[0]); ++i)
