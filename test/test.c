@@ -68,6 +68,8 @@ int main(int argc, char** argv) {
     //-------------------------------------------------------------------------
     // Point deletion
     //-------------------------------------------------------------------------
-    // TODO 
+    NTEST_ASSERT(qtree.root->nw->se->sw->count == 1);
+    node_remove_point(qtree.root, &points[5]);
+    NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
     return 0;
 }
