@@ -209,23 +209,26 @@ void node_remove_point(node_t* node, point_t* point) {
     }
 }
 
-
+#if 0
 void node_merge(node_t* node) {
     if (node_is_leaf(node))
         return;
     // if a child is a leaf, collect its points, else keep searching
     node_t* children[4] = {node->nw, node->ne, node->se, node->sw};
     int point_count = 0;
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < 4; ++i) {
         point_count += children[i]->count;
+    }
     // if the total points fit within the capacity, merge them into parent
     if (point_count <= g_capacity) {
         int ipoint = 0;
         for (int i = 0; i < 4; ++i) {
             if (!node_is_leaf(children[i]))
                 node_merge(children[i]);
-            for (int j = 0; j < children[i]->count; ++j)
+            for (int j = 0; j < children[i]->count; ++j) {
+                // alloc node->points[ipoint]
                 memcpy(&node->points[ipoint++], &children[i]->points[j], sizeof(node->points[0]));
+                }
         }
         node->count = point_count;
         // cleanup
@@ -239,6 +242,46 @@ void node_merge(node_t* node) {
         }
     }
 }
+#else
+void node_merge(node_t* node) {
+    if (node_is_leaf(node))
+        return;
+    node_t* children[4] = { node->nw, node->ne, node->se, node->sw };
+    bool all_leaves = true;
+    for (int i = 0; i < 4; ++i) {
+        if (!node_is_leaf(children[i])) {
+            node_merge(children[i]);
+            all_leaves = false;
+        }
+    }
+    // for each child, collect its points and copy them to the parent and then
+    // delete all children
+
+    if (all_leaves) {
+        size_t point_count = 0;
+        for (int i = 0; i < 4; ++i)
+            point_count += children[i]->count;
+        if (point_count <= g_capacity) {
+            node->count = 0;
+            int ipoint = 0;
+            for (int i = 0; i < 4; ++i) {
+                printf("c count: %d\n", children[i]->count);
+                for (int j = 0; j < children[i]->count; ++j) {
+                    node->points[ipoint].x = children[i]->points[j].x;
+                    node->points[ipoint].y = children[i]->points[j].y;
+                    printf("copying point %d, %d", children[i]->points[j].x, children[i]->points[j].y);
+                    ipoint++;
+                    (node->count)++;
+                }
+            }
+            for (int i = 0; i < 4; ++i) {
+                free(children[i]->points);
+                free(children[i]);
+            }
+        }
+    }
+}
+#endif
 
 void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point) {
     node_t* root = qtree->root;
