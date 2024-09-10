@@ -18,8 +18,8 @@ node_t* node_new(rect_t* boundary) {
     node->boundary = *boundary;
     node->count = 0;
     node->points = malloc(g_capacity * sizeof(point_t));
-    for (int i = 0; i < g_capacity; ++i)
-        node->points[i].id = g_point_id++;
+    //for (int i = 0; i < g_capacity; ++i)
+    //    node->points[i].id = g_point_id++;
     node->nw = NULL;
     node->ne = NULL;
     node->sw = NULL;
