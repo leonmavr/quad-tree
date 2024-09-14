@@ -5,6 +5,10 @@
 #include <time.h>
 #define NPARTICLES 200 // make sure it's less than the visualiser's capacity
 
+// assuming max > 0
+#define CLAMP(x, max) ((x) < -(max) ? -(max) : ((x) > (max) ? (max) : (x)))
+
+
 
 static size_t id_particle = 0;
 
@@ -32,7 +36,6 @@ int main() {
     for (int i = 0; i < NPARTICLES; ++i) {
         point_t p = {random() % boundary.x1, random() % boundary.y1, ids++};
         particles[i].point = p;
-        // TODO: clamp it
         particles[i].velx = (random_norm() > 0.66) ?  5 + random_norm()*10 : -5 - random_norm()*10;
         particles[i].vely = (random_norm() > 0.66) ? -5 - random_norm()*10 :  5 + random_norm()*10;
         particles[i].accelerationy = accel;
@@ -44,7 +47,9 @@ int main() {
         qtree.root = node_new(&boundary);
         for (int ip = 0; ip < NPARTICLES; ++ip) {
             particles[ip].velx += particles[ip].accelerationx * dt;
+            particles[ip].velx = CLAMP(particles[ip].velx, 20);
             particles[ip].vely += particles[ip].accelerationy * dt;
+            particles[ip].vely = CLAMP(particles[ip].vely, 40);
             particles[ip].point.x += particles[ip].velx * dt;
             particles[ip].point.y += particles[ip].vely * dt;
             // reflection
@@ -54,7 +59,6 @@ int main() {
                 particles[ip].point.x = boundary.x1 - 5;
             if (particles[ip].point.y <= boundary.y0)
                 particles[ip].point.y = boundary.y1 - 5;
-            
             point_t pnew = {particles[ip].point.x , particles[ip].point.y, particles[ip].point.id};
             node_insert(qtree.root, &pnew);
         }
