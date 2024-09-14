@@ -3,8 +3,7 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <time.h>
-// TODO: this should be less than what the visualiser can handle
-#define NPARTICLES 100
+#define NPARTICLES 200 // make sure it's less than the visualiser's capacity
 
 
 static size_t id_particle = 0;
@@ -15,47 +14,55 @@ typedef struct particle_t {
     point_t point;
 } particle_t;
 
-void reflect(particle_t* particle, rect_t* boundary, float dt) {
-    const int w = boundary->x1;
-    const int h = boundary->y1;
-    if (particle->point.x + particle->velx * dt > w) {
-        particle->point.x -= w - particle->velx * dt;
-        particle->velx *= -1;
-    } else if (particle->point.x + particle->velx * dt < boundary->x0) {
-        particle->point.x = -particle->velx * dt - particle->point.x;
-        particle->velx *= -1;
-    }
-    if (particle->point.y + particle->vely * dt > h) {
-        particle->point.y -= h - particle->vely * dt;
-        particle->vely *= -1;
-    } else if (particle->point.y + particle->vely * dt < boundary->y0) {
-        particle->point.y = -particle->vely * dt - particle->point.y;
-        particle->vely *= -1;
-    }
-}
-
 static particle_t particles[NPARTICLES];
-
 static size_t ids = 0;
+static float random_norm() {
+    return (float) random() / RAND_MAX;
+}
+static float accel = -5;
+static int niters = 300;
 
 int main() {
     srand(time(NULL));
     rect_t boundary = {.x0=0, .y0=0, .x1=400, .y1=400};
     point_t points[NPARTICLES];
     particle_t particles[NPARTICLES];
-    for (int i = 0; i < NPARTICLES; ++i) {
-        points[i].x = random() % boundary.x1;
-        points[i].y = random() % boundary.y1;
-        points[i].id = ids++;
-    }
     quadtree_t qtree;
     viz_init(boundary.x1, boundary.y1);
-    qtree.root = node_new(&boundary);
     for (int i = 0; i < NPARTICLES; ++i) {
-        node_insert(qtree.root, &points[i]);
+        point_t p = {random() % boundary.x1, random() % boundary.y1, ids++};
+        particles[i].point = p;
+        // TODO: clamp it
+        particles[i].velx = (random_norm() > 0.66) ?  5 + random_norm()*10 : -5 - random_norm()*10;
+        particles[i].vely = (random_norm() > 0.66) ? -5 - random_norm()*10 :  5 + random_norm()*10;
+        particles[i].accelerationy = accel;
+        particles[i].accelerationx = 0;
     }
-    qtree_graph(qtree.root);
-    viz_flush();
-    sleep(3);
+    float dt = 0.1;
+    for (int i = 0; i < niters; ++i) {
+        quadtree_t qtree;
+        qtree.root = node_new(&boundary);
+        for (int ip = 0; ip < NPARTICLES; ++ip) {
+            particles[ip].velx += particles[ip].accelerationx * dt;
+            particles[ip].vely += particles[ip].accelerationy * dt;
+            particles[ip].point.x += particles[ip].velx * dt;
+            particles[ip].point.y += particles[ip].vely * dt;
+            // reflection
+            particles[ip].point.x %= boundary.x1;
+            particles[ip].point.y %= boundary.y1;
+            if (particles[ip].point.x <= boundary.x0)
+                particles[ip].point.x = boundary.x1 - 5;
+            if (particles[ip].point.y <= boundary.y0)
+                particles[ip].point.y = boundary.y1 - 5;
+            
+            point_t pnew = {particles[ip].point.x , particles[ip].point.y, particles[ip].point.id};
+            node_insert(qtree.root, &pnew);
+        }
+        qtree_graph(qtree.root);
+        viz_flush();
+        usleep(33000);
+        qtree_delete(qtree.root);
+    }
+    sleep(1);
     viz_close();
 }

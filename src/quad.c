@@ -1,10 +1,12 @@
 #include "quad.h"
+#include "viz.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <math.h>
 #include <assert.h>
 #include <string.h>
+#include <unistd.h>
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -254,6 +256,7 @@ void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_poin
     node_remove_point(root, old_point);
     old_point->x = new_point->x;
     old_point->y = new_point->y;
+    old_point->id = new_point->id;
     node_insert(root, old_point);
 }
 
@@ -269,3 +272,24 @@ void qtree_delete(node_t* node) {
         free(node);
     }
 }
+
+
+void qtree_graph(node_t* node) {
+    if (node == NULL) return;
+
+    // If it's a leaf node, print the boundary and the points in it
+    if (node_is_leaf(node)) {
+        viz_write_rect(&node->boundary);
+        // Print all points in this leaf
+        for (int i = 0; i < node->count; ++i) {
+            viz_write_point(&node->points[i]);
+        }
+    } else {
+        // Recursively visit all children (if not a leaf)
+        qtree_graph(node->nw);
+        qtree_graph(node->ne);
+        qtree_graph(node->sw);
+        qtree_graph(node->se);
+    }
+}
+

@@ -61,5 +61,6 @@ void node_remove_point(node_t* node, point_t* point);
 void node_merge(node_t* node);
 void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point);
 void qtree_delete(node_t* node);
+void qtree_graph(node_t* node);
 
 #endif // QUAD_H

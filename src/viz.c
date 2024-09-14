@@ -4,8 +4,6 @@
 #include <stdlib.h>
 #include <unistd.h> // usleep
 
-#define NOBJECTS 3000
-
 void viz_init(unsigned width, unsigned height) {
     // don't close the window upon exit
     viz_plot_pipe = popen("gnuplot -persistent", "w");
