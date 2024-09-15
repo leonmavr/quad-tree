@@ -23,7 +23,7 @@ static size_t ids = 0;
 static float random_norm() {
     return (float) random() / RAND_MAX;
 }
-static float accel = -5;
+static float accel = -6;
 static int niters = 600;
 
 int main() {
@@ -36,8 +36,8 @@ int main() {
     for (int i = 0; i < NPARTICLES; ++i) {
         point_t p = {random() % boundary.x1, random() % boundary.y1, ids++};
         particles[i].point = p;
-        particles[i].velx = (random_norm() > 0.66) ?  5 + random_norm()*10 : -5 - random_norm()*10;
-        particles[i].vely = (random_norm() > 0.66) ? -5 - random_norm()*10 :  5 + random_norm()*10;
+        particles[i].velx = (random_norm() > 0.66) ?  3 + random_norm()*8 : -3 - random_norm()*8;
+        particles[i].vely = (random_norm() > 0.66) ? -3 - random_norm()*8 :  3 + random_norm()*8;
         particles[i].accelerationy = accel;
         particles[i].accelerationx = 0;
     }
