@@ -20,24 +20,31 @@ void viz_init(unsigned width, unsigned height) {
     ipoint = 0;
 }
 
+
 void viz_flush() {
-    fprintf(viz_plot_pipe, "clear\n");
+    // remove all previously drawn rectangles
     for (int i = 0; i < irect; ++i) {
-        fprintf(viz_plot_pipe, "set object %zu rect from %d,%d to %d,%d\n", 
+        fprintf(viz_plot_pipe, "unset object %d\n", i + 1);
+    }
+    for (int i = 0; i < irect; ++i) {
+        fprintf(viz_plot_pipe, "set object %d rect from %d,%d to %d,%d\n", 
             i + 1, viz_rects[i].x0, viz_rects[i].y0, viz_rects[i].x1, viz_rects[i].y1);
     }
     if (ipoint > 0) {
-        fprintf(viz_plot_pipe, "plot '-' with points pt 7 ps 1 title 'Points'\n");
-        for (int i = 0; i < ipoint; ++i)
+        fprintf(viz_plot_pipe, "plot '-' with points pt 7 ps 1\n");
+        for (int i = 0; i < ipoint; ++i) {
             fprintf(viz_plot_pipe, "%d %d\n", viz_points[i].x, viz_points[i].y); 
-        fprintf(viz_plot_pipe, "e\n"); // end the input
+        }
+        fprintf(viz_plot_pipe, "e\n");  // End the input
     } else {
         fprintf(stderr, "Warning: No points to plot.\n");
     }
+    fprintf(viz_plot_pipe, "replot\n");
     irect = ipoint = 0;
     fflush(viz_plot_pipe);
     usleep(16000);
 }
+
 
 void viz_write_rect(rect_t* rect) {
     viz_rects[irect++] = *rect;

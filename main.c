@@ -24,7 +24,7 @@ static float random_norm() {
     return (float) random() / RAND_MAX;
 }
 static float accel = -5;
-static int niters = 300;
+static int niters = 600;
 
 int main() {
     srand(time(NULL));
@@ -56,9 +56,9 @@ int main() {
             particles[ip].point.x %= boundary.x1;
             particles[ip].point.y %= boundary.y1;
             if (particles[ip].point.x <= boundary.x0)
-                particles[ip].point.x = boundary.x1 - 5;
+                particles[ip].point.x = boundary.x1;
             if (particles[ip].point.y <= boundary.y0)
-                particles[ip].point.y = boundary.y1 - 5;
+                particles[ip].point.y = boundary.y1;
             point_t pnew = {particles[ip].point.x , particles[ip].point.y, particles[ip].point.id};
             node_insert(qtree.root, &pnew);
         }
