@@ -42,7 +42,8 @@ void viz_flush() {
     fprintf(viz_plot_pipe, "replot\n");
     irect = ipoint = 0;
     fflush(viz_plot_pipe);
-    usleep(25000);
+    // 20 fps
+    usleep(50000);
 }
 
 

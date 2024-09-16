@@ -66,7 +66,6 @@ int main() {
         viz_flush();
         qtree_delete(qtree.root);
     }
-    free(qtree.root);
     sleep(1);
     viz_close();
 }
