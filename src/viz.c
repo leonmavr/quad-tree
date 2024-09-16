@@ -23,7 +23,7 @@ void viz_init(unsigned width, unsigned height) {
 
 void viz_flush() {
     // remove all previously drawn rectangles
-    for (int i = 0; i < irect; ++i) {
+    for (int i = 0; i < NOBJECTS; ++i) {
         fprintf(viz_plot_pipe, "unset object %d\n", i + 1);
     }
     for (int i = 0; i < irect; ++i) {
@@ -42,8 +42,7 @@ void viz_flush() {
     fprintf(viz_plot_pipe, "replot\n");
     irect = ipoint = 0;
     fflush(viz_plot_pipe);
-    // 20 fps
-    usleep(50000);
+    usleep(16000);
 }
 
 
