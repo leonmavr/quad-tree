@@ -13,28 +13,10 @@ int main(int argc, char** argv) {
     rect_t boundary = {0, 0, 400, 200};
     point_t points[10] = {{51, 25}, {20, 49}, {199, 62}, {160, 70}, {160, 80},
         {110, 90}, {108, 120}, {180, 143}, {0, 149}, {330, 190}};
-    /*
-     *
-     *   +--------+--------+----------------+
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   |
-     *   +--------+--------+----------------+
-     *
-     */
     quadtree_t qtree;
-    qtree.root = node_new(&boundary);   
+    qtree_new(&qtree, &boundary);   
     for (int i = 0; i < sizeof(points)/sizeof(points[0]); ++i)
-        node_insert(qtree.root, &points[i]);
+        qtree_insert(&qtree, &points[i]);
     //-------------------------------------------------------------------------
     // Inspect insertion
     //-------------------------------------------------------------------------
