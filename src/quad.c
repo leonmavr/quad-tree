@@ -14,6 +14,9 @@ static double distance_sq(point_t* p1, point_t* p2) {
     return (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
 }
 
+void qtree_new(quadtree_t* qtree, rect_t* boundary) {
+    qtree->root = node_new(boundary);
+}
 
 node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
@@ -87,6 +90,10 @@ void node_insert(node_t* node, point_t* point) {
         else if (quadrant == IND_SE) node_insert(node->se, point);
         else if (quadrant == IND_SW) node_insert(node->sw, point);
     }
+}
+
+void qtree_insert(quadtree_t* qtree, point_t* point) {
+    node_insert(qtree->root, point);
 }
 
 bool rect_intersect(rect_t* r1, rect_t* r2) {
@@ -259,21 +266,25 @@ void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_poin
     node_insert(root, old_point);
 }
 
-void qtree_delete(node_t* node) {
+void node_del_all(node_t* node) {
     if (node == NULL)
         return;
-    qtree_delete(node->nw);
-    qtree_delete(node->ne);
-    qtree_delete(node->sw);
-    qtree_delete(node->se);
+    node_del_all(node->nw);
+    node_del_all(node->ne);
+    node_del_all(node->sw);
+    node_del_all(node->se);
     if (node != NULL) {
         free(node->points);
         free(node);
     }
 }
 
+void qtree_del(quadtree_t* qtree) {
+    node_del_all(qtree->root);
+}
 
-void qtree_graph(node_t* node) {
+
+void node_graph(node_t* node) {
     if (node == NULL) return;
 
     // If it's a leaf node, print the boundary and the points in it
@@ -285,10 +296,13 @@ void qtree_graph(node_t* node) {
         }
     } else {
         // Recursively visit all children (if not a leaf)
-        qtree_graph(node->nw);
-        qtree_graph(node->ne);
-        qtree_graph(node->sw);
-        qtree_graph(node->se);
+        node_graph(node->nw);
+        node_graph(node->ne);
+        node_graph(node->sw);
+        node_graph(node->se);
     }
 }
 
+void qtree_graph(quadtree_t* qtree) {
+    node_graph(qtree->root);
+}
