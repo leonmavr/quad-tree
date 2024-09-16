@@ -30,13 +30,12 @@ node_t* node_new(rect_t* boundary) {
 }
 
 void rect_divide(rect_t* src, rect_t* dest) {
-    const int w = abs(src->x1 - src->x0), h = abs(src->y1 - src->y0);
-    const int x0_nw = src->x0, y0_nw = src->y0;
-    const int x1_nw = src->x0 + w/2, y1_nw = src->y0 + h/2;
-    dest[IND_NW] = (rect_t) {x0_nw    , y0_nw    , x1_nw      , y1_nw};
-    dest[IND_NE] = (rect_t) {x1_nw + 1, y0_nw    , x1_nw + w/2, y1_nw};
-    dest[IND_SE] = (rect_t) {x1_nw + 1, y1_nw + 1, x1_nw + w/2, y1_nw + h/2};
-    dest[IND_SW] = (rect_t) {x0_nw    , y1_nw + 1, x1_nw      , y1_nw + h/2};
+    const int mid_x = (src->x0 + src->x1) / 2;
+    const int mid_y = (src->y0 + src->y1) / 2;
+    dest[IND_NW] = (rect_t) {src->x0 , src->y0 , mid_x   , mid_y  };
+    dest[IND_NE] = (rect_t) {mid_x+1 , src->y0 , src->x1 , mid_y };
+    dest[IND_SE] = (rect_t) {mid_x+1 , mid_y+1 , src->x1 , src->y1};
+    dest[IND_SW] = (rect_t) {src->x0 , mid_y+1 , mid_x , src->y1};
 }
 
 int point_get_quadrant(rect_t* rect, point_t* point) {
