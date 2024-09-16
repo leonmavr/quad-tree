@@ -52,7 +52,7 @@ int main() {
             particles[ip].vely = CLAMP(particles[ip].vely, 40);
             particles[ip].point.x += particles[ip].velx * dt;
             particles[ip].point.y += particles[ip].vely * dt;
-            // reflection
+            // reflection left and right, wrapping up and down
             particles[ip].point.x %= boundary.x1;
             particles[ip].point.y %= boundary.y1;
             if (particles[ip].point.x <= boundary.x0)
@@ -64,9 +64,9 @@ int main() {
         }
         qtree_graph(qtree.root);
         viz_flush();
-        usleep(33000);
         qtree_delete(qtree.root);
     }
+    free(qtree.root);
     sleep(1);
     viz_close();
 }
