@@ -7,6 +7,7 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+#include <float.h> // DOUBLE_MAX
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -206,7 +207,7 @@ void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, doubl
 }
 
 double qtree_nearest_neighbor(quadtree_t* qtree, point_t* query, point_t* nearest) {
-    double best_dist_squared = 999999999.;
+    double best_dist_squared = DBL_MAX;
     node_nearest_neighbor(qtree->root, query, nearest, &best_dist_squared);
     return best_dist_squared;
 }
