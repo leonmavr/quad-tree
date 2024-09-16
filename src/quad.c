@@ -14,6 +14,8 @@ static double distance_sq(point_t* p1, point_t* p2) {
     return (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
 }
 
+
+
 void qtree_new(quadtree_t* qtree, rect_t* boundary) {
     qtree->root = node_new(boundary);
 }
@@ -106,7 +108,7 @@ bool rect_intersect(rect_t* r1, rect_t* r2) {
     return left <= right && top <= bottom;
 }
 
-void quadtree_query(node_t* node, rect_t* search_area, int* count) {
+void node_query(node_t* node, rect_t* search_area, int* count) {
     if (!rect_intersect(&node->boundary, search_area))
         return;
     // If the node is a leaf and the boundary overlaps with the search area, count the points
@@ -116,11 +118,15 @@ void quadtree_query(node_t* node, rect_t* search_area, int* count) {
                 (*count)++;
         }
     } else {
-        quadtree_query(node->nw, search_area, count);
-        quadtree_query(node->ne, search_area, count);
-        quadtree_query(node->sw, search_area, count);
-        quadtree_query(node->se, search_area, count);
+        node_query(node->nw, search_area, count);
+        node_query(node->ne, search_area, count);
+        node_query(node->sw, search_area, count);
+        node_query(node->se, search_area, count);
     }
+}
+
+void qtree_query(quadtree_t* qtree, rect_t* search_area, int* count) {
+    node_query(qtree->root, search_area, count);
 }
 
 double point_rect_distsq(point_t* p, rect_t* rect) {
@@ -171,7 +177,7 @@ double point_rect_distsq(point_t* p, rect_t* rect) {
     return dx * dx + dy * dy;
 }
 
-void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared) {
+void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared) {
     if (!node) return;
 
     if (node_is_leaf(node)) {
@@ -187,16 +193,22 @@ void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, d
         node_t* children[4] = {node->nw, node->ne, node->sw, node->se};
         // 1. Narrow down to the quadrant containing the query point first
         //    to prune as fast as possible
-        quadtree_nearest_neighbor(children[quadrant], query, nearest, best_dist_squared);
+        node_nearest_neighbor(children[quadrant], query, nearest, best_dist_squared);
         // 2. Search neighboring nodes from top to bottom
         for (int i = 0; i < 4; ++i) {
             if (i == quadrant) continue;
             double dist_to_region = point_rect_distsq(query, &children[i]->boundary);
             // 3. If a node is too far away, prune (skip) it and all its children
             if (dist_to_region < *best_dist_squared)
-                quadtree_nearest_neighbor(children[i], query, nearest, best_dist_squared);
+                node_nearest_neighbor(children[i], query, nearest, best_dist_squared);
         }
     }
+}
+
+double qtree_nearest_neighbor(quadtree_t* qtree, point_t* query, point_t* nearest) {
+    double best_dist_squared = 999999999.;
+    node_nearest_neighbor(qtree->root, query, nearest, &best_dist_squared);
+    return best_dist_squared;
 }
 
 void node_remove_point(node_t* node, point_t* point) {

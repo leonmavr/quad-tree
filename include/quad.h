@@ -40,7 +40,6 @@ typedef struct quadtree_t {
 } quadtree_t;
 
 
-
 static bool point_in_rect(point_t* point, rect_t* boundary) {
     return point->x >= boundary->x0 && point->x <= boundary->x1 &&
            point->y >= boundary->y0 && point->y <= boundary->y1;
@@ -50,6 +49,8 @@ void qtree_new(quadtree_t* qtree, rect_t* boundary);
 void qtree_del(quadtree_t* qtree);
 void qtree_insert(quadtree_t* qtree, point_t* point);
 void qtree_graph(quadtree_t* qtree);
+void qtree_query(quadtree_t* qtree, rect_t* search_area, int* count);
+double qtree_nearest_neighbor(quadtree_t* qtree, point_t* query, point_t* nearest);
 
 node_t* node_new(rect_t* boundary);
 void rect_divide(rect_t* src, rect_t* dest);
@@ -58,9 +59,9 @@ bool node_is_leaf(node_t* node);
 void node_insert(node_t* node, point_t* point);
 
 bool rect_intersect(rect_t* r1, rect_t* r2);
-void quadtree_query(node_t* node, rect_t* search_area, int* count);
+void node_query(node_t* node, rect_t* search_area, int* count);
 
-void quadtree_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared);
+void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared);
 double point_to_rect_distance(point_t* p, rect_t* rect);
 void node_remove_point(node_t* node, point_t* point);
 void node_merge(node_t* node);
