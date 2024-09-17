@@ -2,6 +2,7 @@
 #include "nanotest.h"
 #include <assert.h>
 #include <limits.h>
+#include <math.h>
 
 static bool are_points_equal(point_t* p1, point_t* p2) {
     return p1->id == p2->id;
@@ -35,8 +36,9 @@ int main(int argc, char** argv) {
     //-------------------------------------------------------------------------
     point_t nearest; 
     point_t query = {160, 78};
-    double dist_nearest_squared = INT_MAX;
-    quadtree_nearest_neighbor(qtree.root, &query, &nearest, &dist_nearest_squared);
+    //double dist_nearest_squared = INT_MAX;
+    //quadtree_nearest_neighbor(qtree.root, &query, &nearest, &dist_nearest_squared);
+    double dist_nearest_squared = qtree_nearest_neighbor(&qtree, &query, &nearest);
     NTEST_ASSERT(3.99 <= dist_nearest_squared && dist_nearest_squared <= 4.01);
     NTEST_ASSERT(nearest.id == points[4].id);
     //-------------------------------------------------------------------------
@@ -44,7 +46,7 @@ int main(int argc, char** argv) {
     //-------------------------------------------------------------------------
     int how_many = 0;
     rect_t search_area = {100, 50, 200, 100};
-    quadtree_query(qtree.root, &search_area, &how_many);
+    qtree_query(&qtree, &search_area, &how_many);
     NTEST_ASSERT(how_many == 4);
     //-------------------------------------------------------------------------
     // Update point 
@@ -57,7 +59,7 @@ int main(int argc, char** argv) {
     // Merge
     //-------------------------------------------------------------------------
     // now sw->nw should have one point and so should sw->ne; mergeable into sw
-    node_merge(qtree.root);
+    qtree_merge(&qtree);
     // p7, p8 should have propagated up into sw
     NTEST_ASSERT(qtree.root->sw->count == 2);
     NTEST_ASSERT((are_points_equal(&qtree.root->sw->points[1], &points[7]) &&
@@ -68,7 +70,7 @@ int main(int argc, char** argv) {
     // Point deletion
     //-------------------------------------------------------------------------
     NTEST_ASSERT(qtree.root->nw->se->sw->count == 1);
-    node_remove_point(qtree.root, &points[5]);
+    qtree_remove_point(&qtree, &points[5]);
     NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
     return 0;
 }
