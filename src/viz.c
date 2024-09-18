@@ -16,17 +16,16 @@ void viz_init(unsigned width, unsigned height) {
     fprintf(viz_plot_pipe, "set yrange [0:%u]\n", height);
     fprintf(viz_plot_pipe, "set size square\n");
     viz_nrects = 0;
+    nobjects_clear = 0;
     irect = 0;
     ipoint = 0;
 }
 
 
-void _viz_flush(args_1i_t args) {
-    size_t nobjects = NOBJECTS;
-    if (args.i)
-        nobjects = args.i;
+void viz_flush() {
+    nobjects_clear= (irect > nobjects_clear) ? irect : nobjects_clear;
     // remove all previously drawn rectangles
-    for (size_t i = 0; i < nobjects; ++i)
+    for (size_t i = 0; i < nobjects_clear; ++i)
         fprintf(viz_plot_pipe, "unset object %d\n", i + 1);
     for (int i = 0; i < irect; ++i) {
         fprintf(viz_plot_pipe, "set object %d rect from %d,%d to %d,%d\n", 
