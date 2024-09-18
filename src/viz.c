@@ -4,6 +4,14 @@
 #include <stdlib.h>
 #include <unistd.h> // usleep
 
+static size_t nobjects_clear;
+static FILE* viz_plot_pipe;
+static size_t viz_nrects;
+static rect_t viz_rects[NOBJECTS];
+static point_t viz_points[NOBJECTS];
+static size_t irect;
+static size_t ipoint;
+
 void viz_init(unsigned width, unsigned height) {
     // don't close the window upon exit
     viz_plot_pipe = popen("gnuplot -persistent", "w");
@@ -23,7 +31,7 @@ void viz_init(unsigned width, unsigned height) {
 
 
 void viz_flush() {
-    nobjects_clear= (irect > nobjects_clear) ? irect : nobjects_clear;
+    nobjects_clear = (irect > nobjects_clear) ? irect : nobjects_clear;
     // remove all previously drawn rectangles
     for (size_t i = 0; i < nobjects_clear; ++i)
         fprintf(viz_plot_pipe, "unset object %d\n", i + 1);

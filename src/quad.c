@@ -7,9 +7,31 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
-#include <float.h> // DOUBLE_MAX
+#include <float.h> // DBL_MAX
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+static node_t* node_new(rect_t* boundary);
+static bool node_is_leaf(node_t* node);
+static void node_insert(node_t* node, point_t* point);
+static void node_query(node_t* node, rect_t* search_area, int* count);
+static void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared);
+static void node_remove_point(node_t* node, point_t* point);
+static void node_merge(node_t* node);
+static void node_del_all(node_t* node);
+static void node_graph(node_t* node);
+
+node_t* node_new(rect_t* boundary) {
+    node_t *node = malloc(sizeof(node_t));
+    node->boundary = *boundary;
+    node->count = 0;
+    node->points = malloc(g_capacity * sizeof(point_t));
+    node->nw = NULL;
+    node->ne = NULL;
+    node->sw = NULL;
+    node->se = NULL;
+    return node;
+}
 
 static double distance_sq(point_t* p1, point_t* p2) {
     return (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
@@ -24,18 +46,52 @@ void qtree_new(quadtree_t* qtree, rect_t* boundary) {
     qtree->root = node_new(boundary);
 }
 
-node_t* node_new(rect_t* boundary) {
-    node_t *node = malloc(sizeof(node_t));
-    node->boundary = *boundary;
-    node->count = 0;
-    node->points = malloc(g_capacity * sizeof(point_t));
-    //for (int i = 0; i < g_capacity; ++i)
-    //    node->points[i].id = g_point_id++;
-    node->nw = NULL;
-    node->ne = NULL;
-    node->sw = NULL;
-    node->se = NULL;
-    return node;
+static double point_rect_distsq(point_t* p, rect_t* rect) {
+   /*
+    * Why the formula max(x0 - x, x - x1, 0)^2 +
+    * max(y0 - y, y - y1, 0)^2 works for the distance between a
+    * point and a rectangle.
+    *
+    * Case 1 (next to)
+    * ==========================================================
+    * (x0, y0)                            x0 - x < 0, x - x1 > 0
+    *  +-----------------+                y0 - y < 0. y - y1 < 0
+    *  |                 |                d = dx = x - x1
+    *  |                 |     * (x, y)
+    *  |                 |<---->         
+    *  |                 |  dx
+    *  +-----------------+
+    *                 (x1, y1)
+    * 
+    * Case 2 (above/below)
+    * ==========================================================
+    *             * (x, y)
+    *             ^                           
+    *          dy |                            
+    *(x0, y0)     v                       x0 - x < 0, x - x1 < 0
+    * +-----------------+                 y0 - y > 0. y - y1 < 0
+    * |                 |                 d = dy = y0 - y
+    * |                 | 
+    * |                 |
+    * |                 |
+    * +-----------------+
+    *  
+    * Case 3 (diagonally)
+    * ==========================================================
+    * (x0, y0)                            x0 - x < 0, x - x1 > 0
+    *  +-----------------+                y0 - y < 0. y - y1 > 0
+    *  |                 |                d^2 = dx^2 + dy^2
+    *  |                 |                    = (x-x1)^2 + (y-y1)^2
+    *  |                 |
+    *  |                 |   dx
+    *  +-----------------+<------>
+    *                 (x1, y1)   ^
+    *                            | dy
+    *                            v
+    */
+    int dx = MAX(MAX(rect->x0 - p->x, 0), p->x - rect->x1);
+    int dy = MAX(MAX(rect->y0 - p->y, 0), p->y - rect->y1);
+    return dx * dx + dy * dy;
 }
 
 static void rect_divide(rect_t* src, rect_t* dest) {
@@ -131,54 +187,6 @@ static void node_query(node_t* node, rect_t* search_area, int* count) {
 
 void qtree_query(quadtree_t* qtree, rect_t* search_area, int* count) {
     node_query(qtree->root, search_area, count);
-}
-
-static double point_rect_distsq(point_t* p, rect_t* rect) {
-   /*
-    * Why the formula max(x0 - x, x - x1, 0)^2 +
-    * max(y0 - y, y - y1, 0)^2 works for the distance between a
-    * point and a rectangle.
-    *
-    * Case 1 (next to)
-    * ==========================================================
-    * (x0, y0)                            x0 - x < 0, x - x1 > 0
-    *  +-----------------+                y0 - y < 0. y - y1 < 0
-    *  |                 |                d = dx = x - x1
-    *  |                 |     * (x, y)
-    *  |                 |<---->         
-    *  |                 |  dx
-    *  +-----------------+
-    *                 (x1, y1)
-    * 
-    * Case 2 (above/below)
-    * ==========================================================
-    *             * (x, y)
-    *             ^                           
-    *          dy |                            
-    *(x0, y0)     v                       x0 - x < 0, x - x1 < 0
-    * +-----------------+                 y0 - y > 0. y - y1 < 0
-    * |                 |                 d = dy = y0 - y
-    * |                 | 
-    * |                 |
-    * |                 |
-    * +-----------------+
-    *  
-    * Case 3 (diagonally)
-    * ==========================================================
-    * (x0, y0)                            x0 - x < 0, x - x1 > 0
-    *  +-----------------+                y0 - y < 0. y - y1 > 0
-    *  |                 |                d^2 = dx^2 + dy^2
-    *  |                 |                    = (x-x1)^2 + (y-y1)^2
-    *  |                 |
-    *  |                 |   dx
-    *  +-----------------+<------>
-    *                 (x1, y1)   ^
-    *                            | dy
-    *                            v
-    */
-    int dx = MAX(MAX(rect->x0 - p->x, 0), p->x - rect->x1);
-    int dy = MAX(MAX(rect->y0 - p->y, 0), p->y - rect->y1);
-    return dx * dx + dy * dy;
 }
 
 static void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared) {

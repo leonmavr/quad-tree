@@ -50,15 +50,4 @@ void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_poin
 void qtree_merge(quadtree_t* qtree);
 void qtree_remove_point(quadtree_t* qtree, point_t* point);
 
-static node_t* node_new(rect_t* boundary);
-static bool node_is_leaf(node_t* node);
-static void node_insert(node_t* node, point_t* point);
-static void node_query(node_t* node, rect_t* search_area, int* count);
-static void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest, double* best_dist_squared);
-static double point_to_rect_distance(point_t* p, rect_t* rect);
-static void node_remove_point(node_t* node, point_t* point);
-static void node_merge(node_t* node);
-static void node_del_all(node_t* node);
-static void node_graph(node_t* node);
-
 #endif // QUAD_H
