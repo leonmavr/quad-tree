@@ -9,6 +9,8 @@
 #define IND_SE 2
 #define IND_SW 3
 
+extern int g_capacity;
+
 typedef struct point_t {
     int x;
     int y;

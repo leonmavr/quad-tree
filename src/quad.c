@@ -11,7 +11,10 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
-static int g_capacity = 2;  // Maximum number of points per node
+// Maximum number of points per node
+int g_capacity = 2;
+// unique ID to assign to each point
+static size_t qtree_node_ids = 0;
 
 static node_t* node_new(rect_t* boundary);
 static bool node_is_leaf(node_t* node);
@@ -23,11 +26,15 @@ static void node_merge(node_t* node);
 static void node_del_all(node_t* node);
 static void node_graph(node_t* node);
 
+
+
 node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
     node->boundary = *boundary;
     node->count = 0;
     node->points = malloc(g_capacity * sizeof(point_t));
+    for (int i = 0; i < g_capacity; ++i)
+        node->points[i].id = qtree_node_ids++;
     node->nw = NULL;
     node->ne = NULL;
     node->sw = NULL;
