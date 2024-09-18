@@ -34,7 +34,7 @@ void viz_flush() {
     nobjects_clear = (irect > nobjects_clear) ? irect : nobjects_clear;
     // remove all previously drawn rectangles
     for (size_t i = 0; i < nobjects_clear; ++i)
-        fprintf(viz_plot_pipe, "unset object %d\n", i + 1);
+        fprintf(viz_plot_pipe, "unset object %ld\n", i + 1);
     for (int i = 0; i < irect; ++i) {
         fprintf(viz_plot_pipe, "set object %d rect from %d,%d to %d,%d\n", 
             i + 1, viz_rects[i].x0, viz_rects[i].y0, viz_rects[i].x1, viz_rects[i].y1);

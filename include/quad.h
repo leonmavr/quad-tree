@@ -9,9 +9,6 @@
 #define IND_SE 2
 #define IND_SW 3
 
-static int g_capacity = 2;  // Maximum number of points per node
-static size_t g_point_id = 0; // ID of each point
-
 typedef struct point_t {
     int x;
     int y;

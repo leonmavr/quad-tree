@@ -11,6 +11,8 @@
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
+static int g_capacity = 2;  // Maximum number of points per node
+
 static node_t* node_new(rect_t* boundary);
 static bool node_is_leaf(node_t* node);
 static void node_insert(node_t* node, point_t* point);
