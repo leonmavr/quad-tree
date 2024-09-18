@@ -21,11 +21,13 @@ void viz_init(unsigned width, unsigned height) {
 }
 
 
-void viz_flush() {
+void _viz_flush(args_1i_t args) {
+    size_t nobjects = NOBJECTS;
+    if (args.i)
+        nobjects = args.i;
     // remove all previously drawn rectangles
-    for (int i = 0; i < NOBJECTS; ++i) {
+    for (size_t i = 0; i < nobjects; ++i)
         fprintf(viz_plot_pipe, "unset object %d\n", i + 1);
-    }
     for (int i = 0; i < irect; ++i) {
         fprintf(viz_plot_pipe, "set object %d rect from %d,%d to %d,%d\n", 
             i + 1, viz_rects[i].x0, viz_rects[i].y0, viz_rects[i].x1, viz_rects[i].y1);
