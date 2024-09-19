@@ -3,7 +3,10 @@
 #include <limits.h>
 #include <stdlib.h>
 #include <time.h>
-#define NPARTICLES 200 // make sure it's less than the visualiser's capacity
+
+#ifndef NPARTICLES
+#define NPARTICLES 300
+#endif
 
 // assuming max > 0
 #define ABS(x) (x)
