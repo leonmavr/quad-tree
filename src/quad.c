@@ -12,9 +12,9 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // Maximum number of points per node
-int g_capacity = 2;
+int node_capacity = 2;
 // unique ID to assign to each point
-static size_t qtree_node_ids = 0;
+static size_t _node_ids = 0;
 
 static node_t* node_new(rect_t* boundary);
 static bool node_is_leaf(node_t* node);
@@ -32,9 +32,9 @@ node_t* node_new(rect_t* boundary) {
     node_t *node = malloc(sizeof(node_t));
     node->boundary = *boundary;
     node->count = 0;
-    node->points = malloc(g_capacity * sizeof(point_t));
-    for (int i = 0; i < g_capacity; ++i)
-        node->points[i].id = qtree_node_ids++;
+    node->points = malloc(node_capacity * sizeof(point_t));
+    for (int i = 0; i < node_capacity; ++i)
+        node->points[i].id = _node_ids++;
     node->nw = NULL;
     node->ne = NULL;
     node->sw = NULL;
@@ -131,7 +131,7 @@ static bool node_is_leaf(node_t* node) {
 }
 
 static void node_insert(node_t* node, point_t* point) {
-    if (node->count < g_capacity && node_is_leaf(node)) {
+    if (node->count < node_capacity && node_is_leaf(node)) {
         node->points[node->count++] = *point;
     } else {
         // Divide the current node into four sub-regions if it's a leaf and not yet divided
@@ -272,7 +272,7 @@ static void node_merge(node_t* node) {
         size_t point_count = 0;
         for (int i = 0; i < 4; ++i)
             point_count += children[i]->count;
-        if (point_count <= g_capacity) {
+        if (point_count <= node_capacity) {
             node->count = 0;
             int ipoint = 0;
             for (int i = 0; i < 4; ++i) {

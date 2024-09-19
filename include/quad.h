@@ -9,7 +9,7 @@
 #define IND_SE 2
 #define IND_SW 3
 
-extern int g_capacity;
+extern int node_capacity;
 
 typedef struct point_t {
     int x;
