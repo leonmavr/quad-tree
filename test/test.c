@@ -10,7 +10,7 @@ static bool are_points_equal(point_t* p1, point_t* p2) {
 
 int main(int argc, char** argv) {
     // in case it changes in the future
-    g_capacity = 2;
+    node_capacity = 2;
     rect_t boundary = {0, 0, 400, 200};
     point_t points[10] = {{51, 25}, {20, 49}, {199, 62}, {160, 70}, {160, 80},
         {110, 90}, {108, 120}, {180, 143}, {0, 149}, {330, 190}};
