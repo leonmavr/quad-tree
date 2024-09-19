@@ -13,5 +13,6 @@ void viz_flush();
 void viz_write_rect(rect_t* rect);
 void viz_write_point(point_t* point);
 void viz_close();
+void viz_qtree_graph(quadtree_t* qtree) ;
 
 #endif // VIZ_H

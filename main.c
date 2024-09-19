@@ -33,6 +33,8 @@ int main() {
     particle_t particles[NPARTICLES];
     quadtree_t qtree;
     viz_init(boundary.x1, boundary.y1);
+    // to graph the particles
+    void (*qtree_graph)(quadtree_t*) = &viz_qtree_graph;
     for (int i = 0; i < NPARTICLES; ++i) {
         point_t p = {random() % boundary.x1, random() % boundary.y1, ids++};
         particles[i].point = p;

@@ -66,3 +66,28 @@ void viz_write_point(point_t* point) {
 void viz_close() {
     pclose(_plot_pipe);
 }
+
+static bool _node_is_leaf(node_t* node) {
+    return (node != NULL) ? (node->nw == NULL && node->ne == NULL &&
+                            node->se == NULL && node->sw == NULL) : false;
+}
+
+static void _node_graph(node_t* node) {
+    if (node == NULL) return;
+    if (_node_is_leaf(node)) {
+        viz_write_rect(&node->boundary);
+        for (int i = 0; i < node->count; ++i) {
+            viz_write_point(&node->points[i]);
+        }
+    } else {
+        _node_graph(node->nw);
+        _node_graph(node->ne);
+        _node_graph(node->sw);
+        _node_graph(node->se);
+    }
+}
+
+void viz_qtree_graph(quadtree_t* qtree) {
+    _node_graph(qtree->root);
+}
+

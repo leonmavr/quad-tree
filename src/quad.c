@@ -1,5 +1,4 @@
 #include "quad.h"
-#include "viz.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -8,6 +7,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <float.h> // DBL_MAX
+#include <stddef.h> // size_t
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
@@ -24,8 +24,6 @@ static void node_nearest_neighbor(node_t* node, point_t* query, point_t* nearest
 static void node_remove_point(node_t* node, point_t* point);
 static void node_merge(node_t* node);
 static void node_del_all(node_t* node);
-static void node_graph(node_t* node);
-
 
 
 node_t* node_new(rect_t* boundary) {
@@ -127,7 +125,8 @@ else if ((rect->x0 <= x) && (x < rect->x0 + w/2) && (rect->y0 + h/2 <= y) && (y 
 }
 
 static bool node_is_leaf(node_t* node) {
-    return (node != NULL) ? (node->nw == NULL && node->ne == NULL && node->se == NULL && node->sw == NULL) : false;
+    return (node != NULL) ? (node->nw == NULL && node->ne == NULL &&
+                            node->se == NULL && node->sw == NULL) : false;
 }
 
 static void node_insert(node_t* node, point_t* point) {
@@ -279,6 +278,7 @@ static void node_merge(node_t* node) {
                 for (int j = 0; j < children[i]->count; ++j) {
                     node->points[ipoint].x = children[i]->points[j].x;
                     node->points[ipoint].y = children[i]->points[j].y;
+                    node->points[ipoint].id = children[i]->points[j].id;
                     ipoint++;
                     (node->count)++;
                 }
@@ -323,25 +323,3 @@ void qtree_del(quadtree_t* qtree) {
 }
 
 
-static void node_graph(node_t* node) {
-    if (node == NULL) return;
-
-    // If it's a leaf node, print the boundary and the points in it
-    if (node_is_leaf(node)) {
-        viz_write_rect(&node->boundary);
-        // Print all points in this leaf
-        for (int i = 0; i < node->count; ++i) {
-            viz_write_point(&node->points[i]);
-        }
-    } else {
-        // Recursively visit all children (if not a leaf)
-        node_graph(node->nw);
-        node_graph(node->ne);
-        node_graph(node->sw);
-        node_graph(node->se);
-    }
-}
-
-void qtree_graph(quadtree_t* qtree) {
-    node_graph(qtree->root);
-}
