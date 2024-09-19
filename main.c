@@ -6,9 +6,8 @@
 #define NPARTICLES 200 // make sure it's less than the visualiser's capacity
 
 // assuming max > 0
-#define CLAMP(x, max) ((x) < -(max) ? -(max) : ((x) > (max) ? (max) : (x)))
-
-
+#define ABS(x) (x)
+#define CLAMP(x, max) ((x) < -ABS(max) ? -ABS(max) : ((x) > ABS(max) ? ABS(max) : (x)))
 
 static size_t id_particle = 0;
 
@@ -23,8 +22,9 @@ static size_t ids = 0;
 static float random_norm() {
     return (float) random() / RAND_MAX;
 }
-static float accel = -6;
-static int niters = 600;
+static const float accel = -6;
+static const int niters = 600;
+static const float dt = 0.1;
 
 int main() {
     srand(time(NULL));
@@ -41,7 +41,6 @@ int main() {
         particles[i].accelerationy = accel;
         particles[i].accelerationx = 0;
     }
-    float dt = 0.1;
     for (int i = 0; i < niters; ++i) {
         quadtree_t qtree;
         qtree_new(&qtree, &boundary);
