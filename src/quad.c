@@ -94,7 +94,6 @@ static void rect_divide(rect_t* src, rect_t* dest) {
 static int point_get_quadrant(rect_t* rect, point_t* point) {
     const int mid_x = (rect->x0 + rect->x1) / 2;
     const int mid_y = (rect->y0 + rect->y1) / 2;
-
     if (point->x <= mid_x && point->y <= mid_y) return IND_NW;
     else if (point->x > mid_x && point->y <= mid_y) return IND_NE;
     else if (point->x > mid_x && point->y > mid_y) return IND_SE;
@@ -134,6 +133,8 @@ static bool node_is_leaf(node_t* node) {
 }
 
 static void node_insert(node_t* node, point_t* point) {
+    if (!point_in_rect(point, &node->boundary))
+        return;
     if (node->count < node_capacity && node_is_leaf(node)) {
         node->points[node->count++] = *point;
     } else {
