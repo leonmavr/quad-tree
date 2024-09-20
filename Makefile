@@ -1,44 +1,47 @@
 CC = gcc
+TARGET = demo
 SRC_DIR = src
 INC_DIR = include
-# This is where the targets will be compiled from
 EXAMPLES_DIR = examples
-TEST_DIR = test
-CFLAGS = -g -I$(INC_DIR) -Wall
+CFLAGS = -O3 -I$(INC_DIR) -Wall
 LDFLAGS = -lm
-TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
+TEST_SRC = test/test.c
 EXAMPLES_SRC = $(wildcard $(EXAMPLES_DIR)/*.c)
-# Each demo source gets a target, e.g. examples/01_demo.c -> 01_demo
+SRC = $(wildcard $(SRC_DIR)/*.c) $(wildcard $(EXAMPLES_SRC)/*.c)
+
+# Each .c demo file in `example` folder gets a target, e.g. examples/01.c -> 01
 EXAMPLES = $(patsubst $(EXAMPLES_DIR)/%.c,%,$(EXAMPLES_SRC))
 
-# If `test` is passed as a cmd argument, extend flags to handle unit tests 
+# `make test` command: Overwrite SRC to include tests and library
 ifeq ($(MAKECMDGOALS), test)
     CFLAGS += -DRUN_UNIT_TESTS
-    TARGET = test/test
     SRC = $(wildcard $(SRC_DIR)/*.c) $(TEST_SRC)
-else
-    TARGET = $(EXAMPLES)
-    SRC = $(wildcard $(SRC_DIR)/*.c)
+    TARGET = test/test
 endif
 
 OBJECTS = $(SRC:%.c=%.o)
 
-# What to do by default (no arguments)
-all: $(EXAMPLES)
+all: $(TARGET) $(EXAMPLES)
+
+$(TARGET): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $(TARGET) $(LDFLAGS)
 
 $(EXAMPLES): %: $(EXAMPLES_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
 	$(CC) $(CFLAGS) $(SRC_DIR)/*.c $< -o $@ $(LDFLAGS)
 
+# Test target: build and run tests
+test: $(OBJECTS)
+	$(CC) $(OBJECTS) -o test/test $(LDFLAGS)
+	./test/test
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-
-# Phony to always rerun it
-
-test: $(TARGET)
-	./$(TARGET)
 
 .PHONY: clean
 
 RM = rm -rf
 clean:
-	$(RM) $(EXAMPLES) $(SRC_DIR)/*.o test/*.o
+	$(RM) $(TARGET) $(SRC_DIR)/*.o $(EXAMPLES) test/test
+	$(RM) $(TARGET).o
+	$(RM) test/*.o
+
