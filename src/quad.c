@@ -25,21 +25,6 @@ static void node_remove_point(node_t* node, point_t* point);
 static void node_merge(node_t* node);
 static void node_del_all(node_t* node);
 
-
-node_t* node_new(rect_t* boundary) {
-    node_t *node = malloc(sizeof(node_t));
-    node->boundary = *boundary;
-    node->count = 0;
-    node->points = malloc(node_capacity * sizeof(point_t));
-    for (int i = 0; i < node_capacity; ++i)
-        node->points[i].id = _node_ids++;
-    node->nw = NULL;
-    node->ne = NULL;
-    node->sw = NULL;
-    node->se = NULL;
-    return node;
-}
-
 static double distance_sq(point_t* p1, point_t* p2) {
     return (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
 }
@@ -47,10 +32,6 @@ static double distance_sq(point_t* p1, point_t* p2) {
 static bool point_in_rect(point_t* point, rect_t* boundary) {
     return point->x >= boundary->x0 && point->x <= boundary->x1 &&
            point->y >= boundary->y0 && point->y <= boundary->y1;
-}
-
-void qtree_new(quadtree_t* qtree, rect_t* boundary) {
-    qtree->root = node_new(boundary);
 }
 
 static double point_rect_distsq(point_t* p, rect_t* rect) {
@@ -124,6 +105,33 @@ else if ((rect->x0 <= x) && (x < rect->x0 + w/2) && (rect->y0 + h/2 <= y) && (y 
     return -1; // error - not in rectangle
 }
 
+static bool rect_intersect(rect_t* r1, rect_t* r2) {
+    // max of the left edges and min of the right edges
+    int left   = r1->x0 > r2->x0 ? r1->x0 : r2->x0;
+    int right  = r1->x1 < r2->x1 ? r1->x1 : r2->x1;
+    // max of the top edges and min of the bottom edges
+    int top    = r1->y0 > r2->y0 ? r1->y0 : r2->y0;
+    int bottom = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
+    return left <= right && top <= bottom;
+}
+
+node_t* node_new(rect_t* boundary) {
+    node_t *node = malloc(sizeof(node_t));
+    node->boundary = *boundary;
+    node->count = 0;
+    node->points = malloc(node_capacity * sizeof(point_t));
+    for (int i = 0; i < node_capacity; ++i)
+        node->points[i].id = _node_ids++;
+    node->nw = NULL;
+    node->ne = NULL;
+    node->sw = NULL;
+    node->se = NULL;
+    return node;
+}
+
+void qtree_new(quadtree_t* qtree, rect_t* boundary) {
+    qtree->root = node_new(boundary);
+}
 static bool node_is_leaf(node_t* node) {
     return (node != NULL) ? (node->nw == NULL && node->ne == NULL &&
                             node->se == NULL && node->sw == NULL) : false;
@@ -164,16 +172,6 @@ static void node_insert(node_t* node, point_t* point) {
 
 void qtree_insert(quadtree_t* qtree, point_t* point) {
     node_insert(qtree->root, point);
-}
-
-static bool rect_intersect(rect_t* r1, rect_t* r2) {
-    // the max of the left edges and the min of the right edges
-    int left   = r1->x0 > r2->x0 ? r1->x0 : r2->x0;
-    int right  = r1->x1 < r2->x1 ? r1->x1 : r2->x1;
-    // the max of the top edges and the min of the bottom edges
-    int top    = r1->y0 > r2->y0 ? r1->y0 : r2->y0;
-    int bottom = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
-    return left <= right && top <= bottom;
 }
 
 static void node_query(node_t* node, rect_t* search_area, int* count) {
@@ -254,6 +252,14 @@ void qtree_remove_point(quadtree_t* qtree, point_t* point) {
     node_remove_point(qtree->root, point);
 }
 
+void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point) {
+    node_remove_point(qtree->root, old_point);
+    old_point->x = new_point->x;
+    old_point->y = new_point->y;
+    old_point->id = new_point->id;
+    node_insert(qtree->root, old_point);
+}
+
 static void node_merge(node_t* node) {
     if (node_is_leaf(node))
         return;
@@ -297,14 +303,6 @@ void qtree_merge(quadtree_t* qtree) {
     node_merge(qtree->root);
 }
 
-void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point) {
-    node_remove_point(qtree->root, old_point);
-    old_point->x = new_point->x;
-    old_point->y = new_point->y;
-    old_point->id = new_point->id;
-    node_insert(qtree->root, old_point);
-}
-
 void node_del_all(node_t* node) {
     if (node == NULL)
         return;
@@ -321,5 +319,3 @@ void node_del_all(node_t* node) {
 void qtree_del(quadtree_t* qtree) {
     node_del_all(qtree->root);
 }
-
-

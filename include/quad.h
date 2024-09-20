@@ -37,13 +37,13 @@ typedef struct quadtree_t {
 
 
 void qtree_new(quadtree_t* qtree, rect_t* boundary);
-void qtree_del(quadtree_t* qtree);
 void qtree_insert(quadtree_t* qtree, point_t* point);
-extern void (*qtree_graph)(quadtree_t*);
 void qtree_query(quadtree_t* qtree, rect_t* search_area, int* count);
 double qtree_nearest_neighbor(quadtree_t* qtree, point_t* query, point_t* nearest);
+void qtree_remove_point(quadtree_t* qtree, point_t* point);
 void qtree_update_point(quadtree_t* qtree, point_t* old_point, point_t* new_point);
 void qtree_merge(quadtree_t* qtree);
-void qtree_remove_point(quadtree_t* qtree, point_t* point);
+void qtree_del(quadtree_t* qtree);
+extern void (*qtree_graph)(quadtree_t*);
 
 #endif // QUAD_H
