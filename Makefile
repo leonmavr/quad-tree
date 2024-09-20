@@ -33,7 +33,6 @@ $(EXAMPLES): %: $(EXAMPLES_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 # Phony to always rerun it
-.PHONY: test
 
 test: $(TARGET)
 	./$(TARGET)
