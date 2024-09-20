@@ -92,17 +92,13 @@ static void rect_divide(rect_t* src, rect_t* dest) {
 }
 
 static int point_get_quadrant(rect_t* rect, point_t* point) {
-    const int x = point->x, y = point->y;
-    const int w = abs(rect->x0 - rect->x1), h = abs(rect->y0 - rect->y1);
-    if ((rect->x0 <= x) && (x < rect->x0 + w/2) && (rect->y0 <= y) && (y < rect->y0 + h/2))
-        return IND_NW;
-    else if ((rect->x0 + w/2 <= x) && (x < rect->x1) && (rect->y0 <= y) && (y < rect->y0 + h/2))
-        return IND_NE;
-    else if ((rect->x0 + w/2 <= x) && (x < rect->x1) && (rect->y0 + h/2 <= y) && (y < rect->y1))
-    return IND_SE;
-else if ((rect->x0 <= x) && (x < rect->x0 + w/2) && (rect->y0 + h/2 <= y) && (y < rect->y1))
-        return IND_SW;
-    return -1; // error - not in rectangle
+    const int mid_x = (rect->x0 + rect->x1) / 2;
+    const int mid_y = (rect->y0 + rect->y1) / 2;
+
+    if (point->x <= mid_x && point->y <= mid_y) return IND_NW;
+    else if (point->x > mid_x && point->y <= mid_y) return IND_NE;
+    else if (point->x > mid_x && point->y > mid_y) return IND_SE;
+    else return IND_SW;
 }
 
 static bool rect_intersect(rect_t* r1, rect_t* r2) {
