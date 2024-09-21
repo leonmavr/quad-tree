@@ -62,7 +62,6 @@ int main(int argc, char** argv) {
     // now sw->nw should have one point and so should sw->ne; mergeable into sw
     qtree_merge(&qtree);
     // p7, p8 should have propagated up into sw
-    printf("%d\n", qtree.root->sw->count);
     NTEST_ASSERT(qtree.root->sw->count == 2);
     NTEST_ASSERT((are_points_equal(&qtree.root->sw->points[1], &points[7]) &&
         are_points_equal(&qtree.root->sw->points[0], &points[8])) ||

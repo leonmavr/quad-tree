@@ -148,22 +148,25 @@ static void node_insert(node_t* node, point_t* point) {
             node->sw = node_new(&subrects[IND_SW]);
             // Leaves were created so re-distributes points into the leaves (children) 
             for (int i = 0; i < node->count; ++i) {
-                point_t existing_point = node->points[i];
-                int quadrant = point_get_quadrant(&node->boundary, &existing_point);
-                if (quadrant == IND_NW) node_insert(node->nw, &existing_point);
-                else if (quadrant == IND_NE) node_insert(node->ne, &existing_point);
-                else if (quadrant == IND_SE) node_insert(node->se, &existing_point);
-                else if (quadrant == IND_SW) node_insert(node->sw, &existing_point);
+                const int quadrant = point_get_quadrant(&node->boundary, &node->points[i]);
+                switch (quadrant) {
+                    case IND_NW: node_insert(node->nw, &node->points[i]); break;
+                    case IND_NE: node_insert(node->ne, &node->points[i]); break;
+                    case IND_SE: node_insert(node->se, &node->points[i]); break;
+                    case IND_SW: node_insert(node->sw, &node->points[i]); break;
+                }
             }
             // Parent node has moved its data to the children 
             node->count = 0;
         }
         // keep searching top-down
-        int quadrant = point_get_quadrant(&node->boundary, point);
-        if (quadrant == IND_NW) node_insert(node->nw, point);
-        else if (quadrant == IND_NE) node_insert(node->ne, point);
-        else if (quadrant == IND_SE) node_insert(node->se, point);
-        else if (quadrant == IND_SW) node_insert(node->sw, point);
+        const int quadrant = point_get_quadrant(&node->boundary, point);
+        switch (quadrant) {
+            case IND_NW: node_insert(node->nw, point); break;
+            case IND_NE: node_insert(node->ne, point); break;
+            case IND_SE: node_insert(node->se, point); break;
+            case IND_SW: node_insert(node->sw, point); break;
+        }
     }
 }
 
@@ -239,12 +242,13 @@ static void node_remove_point(node_t* node, point_t* point) {
 
         }
     } else {
-        // search top-down
-        int quadrant = point_get_quadrant(&node->boundary, point);
-        if (quadrant == IND_NW) node_remove_point(node->nw, point);
-        else if (quadrant == IND_NE) node_remove_point(node->ne, point);
-        else if (quadrant == IND_SE) node_remove_point(node->se, point);
-        else if (quadrant == IND_SW) node_remove_point(node->sw, point);
+        const int quadrant = point_get_quadrant(&node->boundary, point);
+        switch (quadrant) {
+            case IND_NW: node_remove_point(node->nw, point); break;
+            case IND_NE: node_remove_point(node->ne, point); break;
+            case IND_SE: node_remove_point(node->se, point); break;
+            case IND_SW: node_remove_point(node->sw, point); break;
+        } 
     }
 }
 
@@ -287,8 +291,8 @@ static void node_merge(node_t* node) {
                 }
             }
             for (int i = 0; i < 4; ++i) {
-                free(children[i]);
                 free(children[i]->points);
+                free(children[i]);
             }
             // set children to NULL to make current node a leaf
             node->nw = node->ne = node->se = node->sw = NULL;
