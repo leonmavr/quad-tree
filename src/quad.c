@@ -282,22 +282,15 @@ static void node_merge(node_t* node) {
             int ipoint = 0;
             for (int i = 0; i < 4; ++i) {
                 for (int j = 0; j < children[i]->count; ++j) {
-                    node->points[ipoint].x = children[i]->points[j].x;
-                    node->points[ipoint].y = children[i]->points[j].y;
-                    node->points[ipoint].id = children[i]->points[j].id;
-                    ipoint++;
+                    memcpy(&node->points[ipoint++], &children[i]->points[j], sizeof(node->points[0]));
                     (node->count)++;
                 }
             }
-            free(node->nw);
-            free(node->nw->points);
-            free(node->ne);
-            free(node->ne->points);
-            free(node->se);
-            free(node->se->points);
-            free(node->sw);
-            free(node->sw->points);
-            // make the current node a leaf
+            for (int i = 0; i < 4; ++i) {
+                free(children[i]);
+                free(children[i]->points);
+            }
+            // set children to NULL to make current node a leaf
             node->nw = node->ne = node->se = node->sw = NULL;
         }
     }
