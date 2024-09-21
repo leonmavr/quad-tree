@@ -52,6 +52,7 @@ int main(int argc, char** argv) {
     // Update point 
     //-------------------------------------------------------------------------
     point_t pnew = {90, 90};
+    // {108, 120} -> 90, 90
     qtree_update_point(&qtree, &points[6], &pnew);
     NTEST_ASSERT(qtree.root->nw->sw->points[0].id == pnew.id);
     NTEST_ASSERT(qtree.root->sw->ne->count == 1 && qtree.root->nw->sw->count == 1);
@@ -61,6 +62,7 @@ int main(int argc, char** argv) {
     // now sw->nw should have one point and so should sw->ne; mergeable into sw
     qtree_merge(&qtree);
     // p7, p8 should have propagated up into sw
+    printf("%d\n", qtree.root->sw->count);
     NTEST_ASSERT(qtree.root->sw->count == 2);
     NTEST_ASSERT((are_points_equal(&qtree.root->sw->points[1], &points[7]) &&
         are_points_equal(&qtree.root->sw->points[0], &points[8])) ||
@@ -72,6 +74,6 @@ int main(int argc, char** argv) {
     NTEST_ASSERT(qtree.root->nw->se->sw->count == 1);
     qtree_remove_point(&qtree, &points[5]);
     NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
-    //qtree_del(&qtree);
+    qtree_del(&qtree);
     return 0;
 }

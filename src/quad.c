@@ -230,12 +230,7 @@ static void node_remove_point(node_t* node, point_t* point) {
     if (node_is_leaf(node)) {
         for (int i = 0; i < node->count; ++i) {
             if (node->points[i].id == point->id && node->count > 1) {
-#if 1
-                // shift last point into deleted point
-                memcpy(&node->points[i], &node->points[--node->count], sizeof(node->points[0]));
-#else
-                memcpy(&node->points[i], &node->points[node->count], sizeof(node->points[0]));
-#endif
+                memcpy(&node->points[i], &node->points[--node->count], sizeof(point_t));
                 return;
             } else if (node->points[i].id == point->id && node->count == 1) {
                 node->count--;
@@ -294,12 +289,16 @@ static void node_merge(node_t* node) {
                     (node->count)++;
                 }
             }
-            for (int i = 0; i < 4; ++i) {
-                if (children[i] != NULL) {
-                    free(children[i]->points);
-                    free(children[i]);
-                }
-            }
+            free(node->nw);
+            free(node->nw->points);
+            free(node->ne);
+            free(node->ne->points);
+            free(node->se);
+            free(node->se->points);
+            free(node->sw);
+            free(node->sw->points);
+            // make the current node a leaf
+            node->nw = node->ne = node->se = node->sw = NULL;
         }
     }
 }
@@ -315,10 +314,8 @@ void node_del_all(node_t* node) {
     node_del_all(node->ne);
     node_del_all(node->sw);
     node_del_all(node->se);
-    if (node != NULL) {
-        free(node->points);
-        free(node);
-    }
+    free(node->points);
+    free(node);
 }
 
 void qtree_del(quadtree_t* qtree) {
