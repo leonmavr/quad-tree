@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <assert.h>
-#include <string.h>
+#include <string.h> // memcpy
 #include <unistd.h>
 #include <float.h> // DBL_MAX
 #include <stddef.h> // size_t
@@ -229,11 +229,19 @@ double qtree_nearest_neighbor(quadtree_t* qtree, point_t* query, point_t* neares
 static void node_remove_point(node_t* node, point_t* point) {
     if (node_is_leaf(node)) {
         for (int i = 0; i < node->count; ++i) {
-            if (node->points[i].id == point->id) {
+            if (node->points[i].id == point->id && node->count > 1) {
+#if 1
                 // shift last point into deleted point
-                node->points[i] = node->points[--node->count];
+                memcpy(&node->points[i], &node->points[--node->count], sizeof(node->points[0]));
+#else
+                memcpy(&node->points[i], &node->points[node->count], sizeof(node->points[0]));
+#endif
+                return;
+            } else if (node->points[i].id == point->id && node->count == 1) {
+                node->count--;
                 return;
             }
+
         }
     } else {
         // search top-down
