@@ -74,5 +74,5 @@ int main(int argc, char** argv) {
     qtree_remove_point(&qtree, &points[5]);
     NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
     qtree_del(&qtree);
-    return 0;
+    return ntest_result;
 }
