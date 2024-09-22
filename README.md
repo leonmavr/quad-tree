@@ -47,8 +47,9 @@ capacity=2                                       NW                 NE
 └── test
     ├── nanotest.h           <- testing framework
     └── test.c               <- unit tests
-
 ```
+The visualizer plots the quadtree in real time via a pipe fed to GNUplot. The
+library is independent from the visualizer.
 
 ## 2.2. Dependencies and required tools
 
@@ -79,10 +80,15 @@ make clean
 
 # 3. Particle simulation demo
 
-TODO
+![Particle
+demo](https://raw.githubusercontent.com/leonmavr/quad-tree/refs/heads/master/assets/01_particle_sim.gif)
+  
+[High quality video
+version](https://github.com/leonmavr/quad-tree/blob/master/assets/01_particle_sim.mp4)
 
 # References
 
-\[1\] [CMSC 420](https://www.cs.cmu.edu/~ckingsf/bioinfo-lectures/quadtrees.pdf)
+\[1\] [CMSC 420](https://www.cs.cmu.edu/~ckingsf/bioinfo-lectures/quadtrees.pdf)  
 \[2\] [Dortmund
-uni](https://ls11-www.cs.tu-dortmund.de/_media/buchin/teaching/akda_ws21/quadtrees.pdf)
+uni](https://ls11-www.cs.tu-dortmund.de/_media/buchin/teaching/akda_ws21/quadtrees.pdf)  
+\[3\] [CS267 Berkley](https://people.eecs.berkeley.edu/~demmel/cs267/lecture26/lecture26.html)
