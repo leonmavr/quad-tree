@@ -2,70 +2,68 @@
 #include "quad.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h> // usleep
 
-static size_t _nobjects_to_clear;
-static FILE* _plot_pipe;
-static size_t _nrects;
-static rect_t _viz_rects[NOBJECTS];
-static point_t _viz_points[NOBJECTS];
-static size_t _irect;
-static size_t _ipoint;
+static int ppm_width;
+static int ppm_height;
+static unsigned char *ppm;
 
-void viz_init(unsigned width, unsigned height) {
-    // don't close the window upon exit
-    _plot_pipe = popen("gnuplot -persistent", "w");
-    if (_plot_pipe == NULL) {
-        fprintf(stderr, "ERROR: gnuplot not found! Please try installing it!\n");
-        exit(EXIT_FAILURE);
+void viz_init(unsigned width, unsigned height)
+{
+    #if _WIN32
+    _setmode(1, 0x8000);
+    #endif
+    ppm_width  = width  + 1;
+    ppm_height = height + 1;
+    ppm = malloc(3 * ppm_width * ppm_height);
+    memset(ppm, 0xff, 3*ppm_width*ppm_height);
+}
+
+static void drawpoint(int x, int y, int color)
+{
+    if (x>=0 && x<ppm_width && y>=0 && y<ppm_height) {
+        unsigned char *d = ppm + y*3*ppm_width + x*3;
+        d[0] = color >> 16;
+        d[1] = color >>  8;
+        d[2] = color >>  0;
     }
-    fprintf(_plot_pipe, "set title 'Quadtree points and boundaries'\n");
-    fprintf(_plot_pipe, "set xrange [0:%u]\n", width);
-    fprintf(_plot_pipe, "set yrange [0:%u]\n", height);
-    fprintf(_plot_pipe, "set size square\n");
-    _nrects = 0;
-    _nobjects_to_clear = 0;
-    _irect = 0;
-    _ipoint = 0;
 }
 
-
-void viz_flush() {
-    _nobjects_to_clear = (_irect > _nobjects_to_clear) ? _irect : _nobjects_to_clear;
-    // remove all previously drawn rectangles
-    for (size_t i = 0; i < _nobjects_to_clear; ++i)
-        fprintf(_plot_pipe, "unset object %ld\n", i + 1);
-    for (int i = 0; i < _irect; ++i) {
-        fprintf(_plot_pipe, "set object %d rect from %d,%d to %d,%d\n", 
-            i + 1, _viz_rects[i].x0, _viz_rects[i].y0, _viz_rects[i].x1, _viz_rects[i].y1);
+void viz_flush(void)
+{
+    printf("P6\n%d %d\n255\n", ppm_width, ppm_height);
+    fwrite(ppm, ppm_width*3, ppm_height, stdout);
+    memset(ppm, 0xff, 3*ppm_width*ppm_height);
+    for (int x = 0; x < ppm_width; x++) {
+        drawpoint(x, ppm_height-1, 0x000000);
     }
-    if (_ipoint > 0) {
-        fprintf(_plot_pipe, "plot '-' with points pt 7 ps 1\n");
-        for (int i = 0; i < _ipoint; ++i) {
-            fprintf(_plot_pipe, "%d %d\n", _viz_points[i].x, _viz_points[i].y); 
-        }
-        fprintf(_plot_pipe, "e\n");  // End the input
-    } else {
-        fprintf(stderr, "Warning: No points to plot.\n");
+    for (int y = 0; y < ppm_height; y++) {
+        drawpoint(ppm_width-1, y, 0x000000);
     }
-    fprintf(_plot_pipe, "replot\n");
-    _irect = _ipoint = 0;
-    fflush(_plot_pipe);
-    usleep(16000);
+    fflush(stdout);
 }
 
-
-void viz_write_rect(rect_t* rect) {
-    _viz_rects[_irect++] = *rect;
+void viz_write_rect(rect_t *rect)
+{
+    rect_t r = *rect;
+    for (int x = r.x0; x <= r.x1; x++) {
+        drawpoint(x, r.y0, 0x000000);
+    }
+    for (int y = r.y0; y <= r.y1; y++) {
+        drawpoint(r.x0, y, 0x000000);
+    }
 }
 
-void viz_write_point(point_t* point) {
-    _viz_points[_ipoint++] = *point;
+void viz_write_point(point_t *p)
+{
+    int d[] = {-1, 0, +1, 0, 0, +1, 0, -1, 0, 0};
+    for (int i = 0; i < 5; i++) {
+        drawpoint(p->x+d[2*i+0], p->y+d[2*i+1], 0xff00ff);
+    }
 }
 
-void viz_close() {
-    pclose(_plot_pipe);
-}
+void viz_close(void) {}
 
 static bool _node_is_leaf(node_t* node) {
     return (node != NULL) ? (node->nw == NULL && node->ne == NULL &&

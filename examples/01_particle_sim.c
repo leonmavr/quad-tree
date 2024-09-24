@@ -4,6 +4,18 @@
 #include <stdlib.h>
 #include <time.h>
 
+enum { XRAND_MAX = 0x7fffffff };
+static unsigned long long xrandom_state = 1;
+static void xsrandom(unsigned long long seed)
+{
+    xrandom_state = seed;
+}
+static int xrandom(void)
+{
+    xrandom_state = xrandom_state*0x3243f6a8885a308d + 1;
+    return xrandom_state >> 33;
+}
+
 #ifndef NPARTICLES
 #define NPARTICLES 300
 #endif
@@ -23,14 +35,14 @@ typedef struct particle_t {
 static particle_t particles[NPARTICLES];
 static size_t ids = 0;
 static float random_norm() {
-    return (float) random() / RAND_MAX;
+    return (float) xrandom() / XRAND_MAX;
 }
 static const float accel = -6;
 static const int niters = 600;
 static const float dt = 0.1;
 
 int main() {
-    srand(time(NULL));
+    xsrandom(time(0));
     rect_t boundary = {.x0=0, .y0=0, .x1=400, .y1=400};
     point_t points[NPARTICLES];
     particle_t particles[NPARTICLES];
@@ -39,7 +51,7 @@ int main() {
     // to graph the particles
     void (*qtree_graph)(quadtree_t*) = &viz_qtree_graph;
     for (int i = 0; i < NPARTICLES; ++i) {
-        point_t p = {random() % boundary.x1, random() % boundary.y1, ids++};
+        point_t p = {xrandom() % boundary.x1, xrandom() % boundary.y1, ids++};
         particles[i].point = p;
         particles[i].velx = (random_norm() > 0.66) ?  3 + random_norm()*8 : -3 - random_norm()*8;
         particles[i].vely = (random_norm() > 0.66) ? -3 - random_norm()*8 :  3 + random_norm()*8;
