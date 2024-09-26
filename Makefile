@@ -14,14 +14,17 @@ EXAMPLES = $(patsubst $(EXAMPLES_DIR)/%.c,%,$(EXAMPLES_SRC))
 # If `test` is passed as a cmd argument, extend flags to handle unit tests 
 ifeq ($(MAKECMDGOALS), test)
     CFLAGS += -DRUN_UNIT_TESTS
-    TARGET = test/test
-    SRC = $(wildcard $(SRC_DIR)/*.c) $(TEST_SRC)
+    SRC = $(wildcard $(SRC_DIR)/*.c)
+    EXAMPLES = $(patsubst $(TEST_DIR)/%.c,%,$(TEST_SRC))
+    EXAMPLES_DIR = test
+    TARGET = $(EXAMPLES)
+	OBJECTS = $(SRC:%.c=%.o) $(TEST_SRC)
 else
     TARGET = $(EXAMPLES)
     SRC = $(wildcard $(SRC_DIR)/*.c)
+	OBJECTS = $(SRC:%.c=%.o)
 endif
 
-OBJECTS = $(SRC:%.c=%.o)
 
 # What to do by default (no arguments)
 all: $(EXAMPLES)
@@ -32,11 +35,8 @@ $(EXAMPLES): %: $(EXAMPLES_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Phony to always rerun it
 
-test: $(TARGET)
-	./$(TARGET)
-
+test: all
 .PHONY: clean
 
 RM = rm -rf
