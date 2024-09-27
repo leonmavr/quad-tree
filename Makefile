@@ -9,7 +9,7 @@ TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 ifeq ($(MAKECMDGOALS), test)
 	# If `test` is passed as a cmd argument, extend flags to handle unit tests 
 	TARGET_SRC = $(TEST_SRC)
-	TARGETS = $(patsubst $(TEST_DIR)/%.c,%,$(TEST_SRC))
+	TARGETS = $(patsubst $(TEST_DIR)/%.c, %, $(TEST_SRC))
 	TARGET_DIR = test
 else
 	TARGET_SRC = $(wildcard $(TARGET_DIR)/*.c)
@@ -30,7 +30,6 @@ $(TARGETS): %: $(TARGET_DIR)/%.o $(wildcard $(SRC_DIR)/*.o)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean
-
 RM = rm -rf
 clean:
-	$(RM) $(TARGETS) $(SRC_DIR)/*.o $(TARGET_DIR)/*.o tests
+	$(RM) $(TARGETS) $(SRC_DIR)/*.o $(TARGET_DIR)/*.o $(basename $(notdir $(TEST_SRC)))
