@@ -25,8 +25,11 @@ endif
 all: $(TARGETS)
 test: all
 
-$(TARGETS): %: $(TARGET_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
+$(TARGETS): %: $(TARGET_DIR)/%.o $(wildcard $(SRC_DIR)/*.o)
 	$(CC) $(CFLAGS) $(SRC_DIR)/*.c $< -o $@ $(LDFLAGS)
+
+%.o: %.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean
 
