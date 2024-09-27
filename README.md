@@ -67,7 +67,7 @@ Then all demos under `examples` will be compiled against the library. All
 executables will be generated in the root. A particle simulation to demonstrate
 how the tree works has been written. To run it:
 ```
-./01_particle_sim
+./01_particle_sim | mpv -
 ```
 To compile and run the unit tests:
 ```
