@@ -5,6 +5,10 @@ TEST_DIR = test
 CFLAGS = -O3 -I$(INC_DIR) -Wall
 LDFLAGS = -lm
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
+# select plotter; PLOTTER=PPM to plot as ppm frames
+ifeq ($(PLOTTER), PPM)
+    CFLAGS += -DUSE_PPM
+endif
 
 ifeq ($(MAKECMDGOALS), test)
 	# If `test` is passed as a cmd argument, extend flags to handle unit tests 

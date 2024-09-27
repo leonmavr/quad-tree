@@ -1,5 +1,7 @@
-#include "quad.h"
+#include "viz_gplot.h"
+#include "viz_ppm.h"
 #include "viz.h"
+#include "quad.h"
 #include <limits.h>
 #include <stdlib.h>
 #include <time.h>
@@ -20,7 +22,6 @@ static int xrandom(void)
 #define NPARTICLES 300
 #endif
 
-// assuming max > 0
 #define ABS(x) (x)
 #define CLAMP(x, max) ((x) < -ABS(max) ? -ABS(max) : ((x) > ABS(max) ? ABS(max) : (x)))
 
@@ -47,9 +48,28 @@ int main() {
     point_t points[NPARTICLES];
     particle_t particles[NPARTICLES];
     quadtree_t qtree;
-    viz_init(boundary.x1, boundary.y1);
+#ifdef USE_PPM
+    viz_t viz = {
+        .viz_init = ppm_init,
+        .viz_flush = ppm_flush,
+        .viz_write_rect = ppm_write_rect,
+        .viz_write_point = ppm_write_point,
+        .viz_close = ppm_close,
+        .viz_qtree_graph = ppm_qtree_graph
+    };
+#else
+    viz_t viz = {
+        .viz_init = gplt_init,
+        .viz_flush = gplt_flush,
+        .viz_write_rect = gplt_write_rect,
+        .viz_write_point = gplt_write_point,
+        .viz_close = gplt_close,
+        .viz_qtree_graph = gplt_qtree_graph
+    };
+#endif
+    viz.viz_init(boundary.x1, boundary.y1);
     // to graph the particles
-    void (*qtree_graph)(quadtree_t*) = &viz_qtree_graph;
+    void (*qtree_graph)(quadtree_t*) = viz.viz_qtree_graph;
     for (int i = 0; i < NPARTICLES; ++i) {
         point_t p = {xrandom() % boundary.x1, xrandom() % boundary.y1, ids++};
         particles[i].point = p;
@@ -79,9 +99,9 @@ int main() {
             qtree_insert(&qtree, &pnew);
         }
         qtree_graph(&qtree);
-        viz_flush();
+        viz.viz_flush();
         qtree_del(&qtree);
     }
     sleep(1);
-    viz_close();
+    viz.viz_close();
 }
