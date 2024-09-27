@@ -2,44 +2,44 @@ CC = gcc
 SRC_DIR = src
 INC_DIR = include
 # This is where the targets will be compiled from
-EXAMPLES_DIR = examples
+TARGET_DIR = examples
 TEST_DIR = test
 CFLAGS = -g -I$(INC_DIR) -Wall
 LDFLAGS = -lm
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
-EXAMPLES_SRC = $(wildcard $(EXAMPLES_DIR)/*.c)
-# Each demo source gets a target, e.g. examples/01_demo.c -> 01_demo
-EXAMPLES = $(patsubst $(EXAMPLES_DIR)/%.c,%,$(EXAMPLES_SRC))
+TARGET_SRC = $(wildcard $(TARGET_DIR)/*.c)
+# Strip file path so each demo source gets a target,
+# e.g. examples/01_demo.c -> 01_demo
+TARGETS = $(patsubst $(TARGET_DIR)/%.c, %, $(TARGET_SRC))
 
 # If `test` is passed as a cmd argument, extend flags to handle unit tests 
 ifeq ($(MAKECMDGOALS), test)
     CFLAGS += -DRUN_UNIT_TESTS
     SRC = $(wildcard $(SRC_DIR)/*.c)
-    EXAMPLES = $(patsubst $(TEST_DIR)/%.c,%,$(TEST_SRC))
-    EXAMPLES_DIR = test
-    TARGET = $(EXAMPLES)
+    TARGETS = $(patsubst $(TEST_DIR)/%.c,%,$(TEST_SRC))
+    TARGET_DIR = test
+    TARGET = $(TARGETS)
 	OBJECTS = $(SRC:%.c=%.o) $(TEST_SRC)
 else
-    TARGET = $(EXAMPLES)
+    TARGET = $(TARGETS)
     SRC = $(wildcard $(SRC_DIR)/*.c)
 	OBJECTS = $(SRC:%.c=%.o)
 endif
 
 
 # What to do by default (no arguments)
-all: $(EXAMPLES)
+all: $(TARGETS)
 
-$(EXAMPLES): %: $(EXAMPLES_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
+$(TARGETS): %: $(TARGET_DIR)/%.c $(wildcard $(SRC_DIR)/*.c)
 	$(CC) $(CFLAGS) $(SRC_DIR)/*.c $< -o $@ $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
-
 
 test: all
 .PHONY: clean
 
 RM = rm -rf
 clean:
-	$(RM) $(EXAMPLES) $(SRC_DIR)/*.o test/*.o
+	$(RM) $(TARGETS) $(SRC_DIR)/*.o test/*.o tests
 
