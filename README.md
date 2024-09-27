@@ -71,7 +71,7 @@ visualizer.
 
 * `make` to compile the project.
 * `gcc` is the default compiler, set in the Makefile.
-*  either `gnuplot` or media player like `mpv` to run the particle simulation
+*  either `gnuplot` or a media player like `mpv` to run the particle simulation
 demo.
 
 ## 2.3. Compilation
@@ -87,9 +87,9 @@ Then all demos under `examples` will be compiled against the library. All
 executables will be generated in the root. A particle simulation to demonstrate
 how the tree works has been written. To run it:
 
-| gnuplot               | ppm frames                                            |
-| --------------------- | ----------------------------------------------------- |
-| `./01_particle_sim`   | `./01_particle_sim | mpv --no-correct-pts --fps=30 -` |
+| gnuplot               | ppm frames                                              |
+| --------------------- | ------------------------------------------------------- |
+| `./01_particle_sim`   | `./01_particle_sim \| mpv --no-correct-pts --fps=30 -`  |
 
 To compile and run the unit tests:
 ```
