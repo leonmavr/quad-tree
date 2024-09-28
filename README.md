@@ -71,8 +71,8 @@ visualizer.
 
 * `make` to compile the project.
 * `gcc` is the default compiler, set in the Makefile.
-*  either `gnuplot` or a media player like `mpv` to run the particle simulation
-demo.
+*  To run the particle simulation: either `gnuplot` or a media player; `mpv` has
+been tested to work.
 
 ## 2.3. Compilation
 
