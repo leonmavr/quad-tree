@@ -81,7 +81,7 @@ visualizer.
 
 | gnuplot  | ppm frames       |
 | -------- | ---------------- |
-| `make`   | `make -DUSE_PPM` |
+| `make`   | `make PLOTTER=PPM` |
 
 Then all demos under `examples` will be compiled against the library. All
 executables will be generated in the root. A particle simulation to demonstrate
