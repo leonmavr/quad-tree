@@ -80,7 +80,7 @@ int main() {
     }
     for (int i = 0; i < niters; ++i) {
         quadtree_t qtree;
-        qtree_new(&qtree, &boundary);
+        qtree_new(&qtree, boundary);
         for (int ip = 0; ip < NPARTICLES; ++ip) {
             particles[ip].velx += particles[ip].accelerationx * dt;
             particles[ip].velx = CLAMP(particles[ip].velx, 20);
@@ -96,7 +96,7 @@ int main() {
             if (particles[ip].point.y <= boundary.y0)
                 particles[ip].point.y = boundary.y1;
             point_t pnew = {particles[ip].point.x , particles[ip].point.y, particles[ip].point.id};
-            qtree_insert(&qtree, &pnew);
+            qtree_insert(&qtree, pnew);
         }
         qtree_graph(&qtree);
         viz.viz_flush();
