@@ -91,14 +91,14 @@ static void rect_divide(rect_t *src, rect_t *dest) {
   dest[IND_SW] = (rect_t){src->x0, mid_y + 1, mid_x, src->y1};
 }
 
-static int point_get_quadrant(rect_t *rect, point_t *point) {
-  const int mid_x = (rect->x0 + rect->x1) / 2;
-  const int mid_y = (rect->y0 + rect->y1) / 2;
-  if (point->x <= mid_x && point->y <= mid_y)
+static int point_get_quadrant(rect_t rect, point_t point) {
+  const int mid_x = (rect.x0 + rect.x1) / 2;
+  const int mid_y = (rect.y0 + rect.y1) / 2;
+  if (point.x <= mid_x && point.y <= mid_y)
     return IND_NW;
-  else if (point->x > mid_x && point->y <= mid_y)
+  else if (point.x > mid_x && point.y <= mid_y)
     return IND_NE;
-  else if (point->x > mid_x && point->y > mid_y)
+  else if (point.x > mid_x && point.y > mid_y)
     return IND_SE;
   else
     return IND_SW;
@@ -156,7 +156,7 @@ static void node_insert(node_t *node, point_t point) {
       // Leaves were created so re-distributes points into the leaves (children)
       for (int i = 0; i < node->count; ++i) {
         const int quadrant =
-            point_get_quadrant(&node->boundary, &node->points[i]);
+            point_get_quadrant(node->boundary, node->points[i]);
         switch (quadrant) {
         case IND_NW:
           node_insert(node->nw, node->points[i]);
@@ -176,7 +176,7 @@ static void node_insert(node_t *node, point_t point) {
       node->count = 0;
     }
     // keep searching top-down
-    const int quadrant = point_get_quadrant(&node->boundary, &point);
+    const int quadrant = point_get_quadrant(node->boundary, point);
     switch (quadrant) {
     case IND_NW:
       node_insert(node->nw, point);
@@ -234,7 +234,7 @@ static void node_nearest_neighbor(node_t *node, point_t query, point_t *nearest,
       }
     }
   } else {
-    int quadrant = point_get_quadrant(&node->boundary, &query);
+    int quadrant = point_get_quadrant(node->boundary, query);
     node_t *children[4] = {node->nw, node->ne, node->sw, node->se};
     // 1. Narrow down to the quadrant containing the query point first
     //    to prune as fast as possible
@@ -271,7 +271,7 @@ static void node_remove_point(node_t *node, point_t *point) {
       }
     }
   } else {
-    const int quadrant = point_get_quadrant(&node->boundary, point);
+    const int quadrant = point_get_quadrant(node->boundary, *point);
     switch (quadrant) {
     case IND_NW:
       node_remove_point(node->nw, point);
