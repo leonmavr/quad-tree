@@ -1,4 +1,4 @@
-#include "../include/quad.h"
+#include "quad.h"
 #include <assert.h>
 #include <float.h> // DBL_MAX
 #include <stdbool.h>
