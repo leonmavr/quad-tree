@@ -68,8 +68,7 @@ void ppm_close(void)
 }
 
 static bool _node_is_leaf(node_t* node) {
-    return (node != NULL) ? (node->nw == NULL && node->ne == NULL &&
-                            node->se == NULL && node->sw == NULL) : false;
+    return (node != NULL) ? node->is_leaf : false;
 }
 
 static void _node_graph(node_t* node) {
@@ -80,10 +79,8 @@ static void _node_graph(node_t* node) {
             ppm_write_point(&node->points[i]);
         }
     } else {
-        _node_graph(node->nw);
-        _node_graph(node->ne);
-        _node_graph(node->sw);
-        _node_graph(node->se);
+        for (int q = 0; q < 4; ++q)
+            _node_graph(node->children[q]);
     }
 }
 
