@@ -3,7 +3,7 @@ SRC_DIR = src
 INC_DIR = include
 TEST_DIR = test
 DEMO_DIR = examples
-CFLAGS = -O3 -I$(INC_DIR) -Wall
+CFLAGS = -I$(INC_DIR) -Wall -O3
 LDFLAGS = -lm
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 # select plotter; PLOTTER=PPM to plot as ppm frames
@@ -11,8 +11,9 @@ ifeq ($(PLOTTER), PPM)
     CFLAGS += -DUSE_PPM
 endif
 
-ifeq ($(MAKECMDGOALS), test)
+ifneq (,$(filter test,$(MAKECMDGOALS)))
 	# If `test` is passed as a cmd argument, extend flags to handle unit tests 
+	CFLAGS += -DNODE_CAPACITY=2
 	TARGET_SRC = $(TEST_SRC)
 	TARGETS = $(patsubst $(TEST_DIR)/%.c, %, $(TEST_SRC))
 	TARGET_DIR = $(TEST_DIR)
@@ -28,7 +29,7 @@ endif
 all: $(TARGETS)
 test: all
 
-$(TARGETS): %: $(TARGET_DIR)/%.o $(wildcard $(SRC_DIR)/*.o)
+$(TARGETS): %: $(TARGET_DIR)/%.o $(wildcard $(SRC_DIR)/*.c)
 	$(CC) $(CFLAGS) $(SRC_DIR)/*.c $< -o $@ $(LDFLAGS)
 
 %.o: %.c
