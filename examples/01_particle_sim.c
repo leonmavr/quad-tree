@@ -4,6 +4,7 @@
 #include "quad.h"
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 enum { XRAND_MAX = 0x7fffffff };
@@ -25,15 +26,12 @@ static int xrandom(void)
 #define ABS(x) (x)
 #define CLAMP(x, max) ((x) < -ABS(max) ? -ABS(max) : ((x) > ABS(max) ? ABS(max) : (x)))
 
-static size_t id_particle = 0;
-
 typedef struct particle_t {
     float accelerationx, accelerationy;
     float velx, vely;
     point_t point;
 } particle_t;
 
-static particle_t particles[NPARTICLES];
 static size_t ids = 0;
 static float random_norm() {
     return (float) xrandom() / XRAND_MAX;
@@ -42,12 +40,27 @@ static const float accel = -6;
 static const int niters = 600;
 static const float dt = 0.1;
 
+static int env_positive_int(const char *name, int fallback)
+{
+    const char *value = getenv(name);
+    if (value == NULL || *value == '\0')
+        return fallback;
+
+    char *end = NULL;
+    long parsed = strtol(value, &end, 10);
+    if (end == value || *end != '\0' || parsed <= 0 || parsed > INT_MAX)
+        return fallback;
+
+    return (int) parsed;
+}
+
 int main() {
     xsrandom(time(0));
     rect_t boundary = {.x0=0, .y0=0, .x1=400, .y1=400};
-    point_t points[NPARTICLES];
     particle_t particles[NPARTICLES];
     quadtree_t qtree;
+    const int arena_capacity = 4 * NPARTICLES + 1;
+    int render_every = 1;
 #ifdef USE_PPM
     viz_t viz = {
         .viz_init = ppm_init,
@@ -66,8 +79,15 @@ int main() {
         .viz_close = gplt_close,
         .viz_qtree_graph = gplt_qtree_graph
     };
+
+    const char *plot_term = getenv("QTREE_GNUPLOT_TERM");
+    if (plot_term == NULL || *plot_term == '\0' || strncmp(plot_term, "x11", 3) == 0) {
+        render_every = 6;
+    }
 #endif
+    render_every = env_positive_int("QTREE_RENDER_EVERY", render_every);
     viz.viz_init(boundary.x1, boundary.y1);
+    qtree_arena_init(arena_capacity);
     // to graph the particles
     void (*qtree_graph)(quadtree_t*) = viz.viz_qtree_graph;
     for (int i = 0; i < NPARTICLES; ++i) {
@@ -79,7 +99,7 @@ int main() {
         particles[i].accelerationx = 0;
     }
     for (int i = 0; i < niters; ++i) {
-        quadtree_t qtree;
+        qtree_arena_reset();
         qtree_new(&qtree, boundary);
         for (int ip = 0; ip < NPARTICLES; ++ip) {
             particles[ip].velx += particles[ip].accelerationx * dt;
@@ -98,10 +118,12 @@ int main() {
             point_t pnew = {particles[ip].point.x , particles[ip].point.y, particles[ip].point.id};
             qtree_insert(&qtree, pnew);
         }
-        qtree_graph(&qtree);
-        viz.viz_flush();
-        qtree_del(&qtree);
+        if ((i % render_every) == 0 || i == niters - 1) {
+            qtree_graph(&qtree);
+            viz.viz_flush();
+        }
     }
+    qtree_del(&qtree);
     sleep(1);
     viz.viz_close();
 }
