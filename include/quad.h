@@ -32,7 +32,15 @@ typedef struct node_t {
     point_t points[NODE_CAPACITY];
     int count;
     bool is_leaf; // cached flag avoids repeated 4-pointer check
-    struct node_t *children[4]; // NW, NE, SE, SW children
+    union {
+        struct {
+            struct node_t *nw;
+            struct node_t *ne;
+            struct node_t *se;
+            struct node_t *sw;
+        };
+        struct node_t *children[4]; // NW, NE, SE, SW children
+    };
 } node_t;
 
 /**

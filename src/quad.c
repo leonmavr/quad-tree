@@ -34,10 +34,10 @@ static node_t *node_new(rect_t *boundary) {
   node->boundary = *boundary;
   node->count    = 0;
   node->is_leaf  = true;
-  node->children[IND_NW] = NULL;
-  node->children[IND_NE] = NULL;
-  node->children[IND_SE] = NULL;
-  node->children[IND_SW] = NULL;
+  node->nw = NULL;
+  node->ne = NULL;
+  node->se = NULL;
+  node->sw = NULL;
   return node;
 }
 

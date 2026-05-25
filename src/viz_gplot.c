@@ -80,8 +80,10 @@ static void _node_graph(node_t* node) {
             gplt_write_point(&node->points[i]);
         }
     } else {
-        for (int q = 0; q < 4; ++q)
-            _node_graph(node->children[q]);
+        _node_graph(node->nw);
+        _node_graph(node->ne);
+        _node_graph(node->se);
+        _node_graph(node->sw);
     }
 }
 
