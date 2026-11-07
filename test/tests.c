@@ -8,6 +8,16 @@
 
 static bool are_points_equal(point_t p1, point_t p2) { return p1.id == p2.id; }
 
+// Follows a path of quadrant names from a node, e.g. at(root, "nw.se.ne").
+static node_t *at(node_t *node, const char *path) {
+  static const char *names[4] = {"nw", "ne", "sw", "se"}; // IND_* order
+  for (; *path; path += path[2] ? 3 : 2)
+    for (int q = 0; q < 4; ++q)
+      if (path[0] == names[q][0] && path[1] == names[q][1])
+        node = &node->children[q];
+  return node;
+}
+
 int main(int argc, char **argv) {
   rect_t boundary = {0, 0, 400, 200};
   point_t points[10] = {{51, 25},  {20, 49},  {199, 62},  {160, 70},
@@ -24,16 +34,16 @@ int main(int argc, char **argv) {
   //-------------------------------------------------------------------------
   // Inspect insertion
   //-------------------------------------------------------------------------
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->se->ne->points[0], points[2]));
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->se->ne->points[1], points[3]));
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->se->se->points[0], points[4]));
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->se->sw->points[0], points[5]));
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->nw->points[0], points[0]));
-  NTEST_ASSERT(are_points_equal(qtree.root->nw->nw->points[1], points[1]));
-  NTEST_ASSERT(are_points_equal(qtree.root->sw->nw->points[0], points[8]));
-  NTEST_ASSERT(are_points_equal(qtree.root->sw->ne->points[0], points[6]));
-  NTEST_ASSERT(are_points_equal(qtree.root->sw->ne->points[1], points[7]));
-  NTEST_ASSERT(are_points_equal(qtree.root->se->points[0], points[9]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.se.ne")->points[0], points[2]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.se.ne")->points[1], points[3]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.se.se")->points[0], points[4]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.se.sw")->points[0], points[5]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.nw")->points[0], points[0]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "nw.nw")->points[1], points[1]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "sw.nw")->points[0], points[8]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "sw.ne")->points[0], points[6]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "sw.ne")->points[1], points[7]));
+  NTEST_ASSERT(are_points_equal(at(qtree.root, "se")->points[0], points[9]));
 
   //-------------------------------------------------------------------------
   // Nearest point
@@ -57,9 +67,9 @@ int main(int argc, char **argv) {
   point_t pnew = {90, 90, 99};
   // {108, 120} -> {90, 90}
   qtree_update_point(&qtree, points[6], pnew);
-  NTEST_ASSERT(qtree.root->nw->sw->points[0].id == pnew.id);
-  NTEST_ASSERT(qtree.root->sw->ne->count == 1 &&
-               qtree.root->nw->sw->count == 1);
+  NTEST_ASSERT(at(qtree.root, "nw.sw")->points[0].id == pnew.id);
+  NTEST_ASSERT(at(qtree.root, "sw.ne")->count == 1 &&
+               at(qtree.root, "nw.sw")->count == 1);
 
   //-------------------------------------------------------------------------
   // Merge
@@ -67,18 +77,18 @@ int main(int argc, char **argv) {
   // sw->nw has one point, sw->ne has one point -> mergeable into sw
   qtree_merge(&qtree);
   // p7, p8 should have propagated up into sw
-  NTEST_ASSERT(qtree.root->sw->count == 2);
-  NTEST_ASSERT((are_points_equal(qtree.root->sw->points[1], points[7]) &&
-                are_points_equal(qtree.root->sw->points[0], points[8])) ||
-               (are_points_equal(qtree.root->sw->points[0], points[8]) &&
-                are_points_equal(qtree.root->sw->points[1], points[7])));
+  NTEST_ASSERT(at(qtree.root, "sw")->count == 2);
+  NTEST_ASSERT((are_points_equal(at(qtree.root, "sw")->points[1], points[7]) &&
+                are_points_equal(at(qtree.root, "sw")->points[0], points[8])) ||
+               (are_points_equal(at(qtree.root, "sw")->points[0], points[8]) &&
+                are_points_equal(at(qtree.root, "sw")->points[1], points[7])));
 
   //-------------------------------------------------------------------------
   // Point deletion
   //-------------------------------------------------------------------------
-  NTEST_ASSERT(qtree.root->nw->se->sw->count == 1);
+  NTEST_ASSERT(at(qtree.root, "nw.se.sw")->count == 1);
   qtree_remove_point(&qtree, points[5]);
-  NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
+  NTEST_ASSERT(at(qtree.root, "nw.se.sw")->count == 0);
 
   qtree_del(&qtree);
   return ntest_result;

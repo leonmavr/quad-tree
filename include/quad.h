@@ -4,11 +4,13 @@
 #include <stdbool.h>
 #include <stddef.h> // size_t
 
+// Child index bits: bit 0 = east (x > mid_x), bit 1 = south (y > mid_y),
+// with y growing southwards. So index = (x > mid_x) | (y > mid_y) << 1.
 enum {
-    IND_NW = 0, // it must start from 0 for indexing
-    IND_NE,
-    IND_SE,
-    IND_SW
+    IND_NW = 0,
+    IND_NE = 1,
+    IND_SW = 2,
+    IND_SE = 3
 };
 
 // Maximum number of points per leaf node. It changes the size of node_t, so
@@ -31,33 +33,31 @@ typedef struct rect_t {
 
 typedef struct node_t {
     rect_t boundary;
-    point_t points[NODE_CAPACITY];
-    int count;
-    bool is_leaf; // cached flag avoids repeated 4-pointer check
+    int count;   // points stored in this node (leaves only)
+    bool is_leaf;
     // Overflow chain: only used by leaves whose boundary is a single cell
     // (can't be split further) once they hold more than NODE_CAPACITY points.
     struct node_t *next;
+    // A node is either a leaf or internal, never both, so they share storage.
     union {
-        struct {
-            struct node_t *nw;
-            struct node_t *ne;
-            struct node_t *se;
-            struct node_t *sw;
-        };
-        struct node_t *children[4]; // NW, NE, SE, SW children
+        point_t points[NODE_CAPACITY]; // leaf
+        struct node_t *children;       // internal: 4 contiguous nodes,
+                                       // children[IND_NW] .. children[IND_SE]
     };
 } node_t;
 
 /**
  * Per-tree node arena (internal - don't touch the fields). Nodes live in a
  * chain of blocks that only grows, so node pointers stay valid; nodes freed
- * by qtree_merge() go on a free list and are reused by later inserts.
+ * by qtree_merge() go on free lists and are reused by later inserts.
  */
 typedef struct qtree_block_t qtree_block_t;
 typedef struct qtree_arena_t {
     qtree_block_t *head;    // first (smallest) block
     qtree_block_t *current; // block new nodes are carved from
-    node_t *free_list;      // recycled nodes, linked through ->next
+    node_t *free_nodes;     // recycled single nodes, linked through ->next
+    node_t *free_quads;     // recycled groups of 4 children, linked through
+                            // the first node's ->next
 } qtree_arena_t;
 
 typedef struct quadtree_t {

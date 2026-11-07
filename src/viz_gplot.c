@@ -82,10 +82,8 @@ static void _node_graph(node_t* node) {
             }
         }
     } else {
-        _node_graph(node->nw);
-        _node_graph(node->ne);
-        _node_graph(node->se);
-        _node_graph(node->sw);
+        for (int q = 0; q < 4; ++q)
+            _node_graph(&node->children[q]);
     }
 }
 

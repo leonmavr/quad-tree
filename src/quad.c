@@ -31,17 +31,19 @@ static qtree_block_t *block_new(int capacity) {
 }
 
 static void arena_init(qtree_arena_t *arena) {
-  arena->head      = block_new(ARENA_FIRST_BLOCK);
-  arena->current   = arena->head;
-  arena->free_list = NULL;
+  arena->head       = block_new(ARENA_FIRST_BLOCK);
+  arena->current    = arena->head;
+  arena->free_nodes = NULL;
+  arena->free_quads = NULL;
 }
 
 // Forget all nodes but keep the blocks for reuse.
 static void arena_reset(qtree_arena_t *arena) {
   for (qtree_block_t *b = arena->head; b; b = b->next)
     b->used = 0;
-  arena->current   = arena->head;
-  arena->free_list = NULL;
+  arena->current    = arena->head;
+  arena->free_nodes = NULL;
+  arena->free_quads = NULL;
 }
 
 static void arena_free(qtree_arena_t *arena) {
@@ -52,44 +54,68 @@ static void arena_free(qtree_arena_t *arena) {
     b = next;
   }
   arena->head = arena->current = NULL;
-  arena->free_list = NULL;
+  arena->free_nodes = arena->free_quads = NULL;
 }
 
-static node_t *arena_alloc(qtree_arena_t *arena) {
-  if (arena->free_list) {
-    node_t *node = arena->free_list;
-    arena->free_list = node->next;
-    return node;
-  }
+// Takes n contiguous nodes from the current block, moving on to the next
+// block if there isn't room (wasting at most n - 1 nodes at a block's end).
+static node_t *arena_carve(qtree_arena_t *arena, int n) {
   qtree_block_t *b = arena->current;
-  if (b->used == b->capacity) {
+  while (b->capacity - b->used < n) {
     if (!b->next) // blocks kept from a qtree_clear() are reused first
       b->next = block_new(b->capacity * 2);
     b = arena->current = b->next;
   }
-  return &b->nodes[b->used++];
+  node_t *nodes = &b->nodes[b->used];
+  b->used += n;
+  return nodes;
 }
 
-// Returns a leaf and its overflow chain to the free list.
-static void arena_release_leaf(qtree_arena_t *arena, node_t *leaf) {
-  while (leaf) {
-    node_t *next = leaf->next;
-    leaf->next = arena->free_list;
-    arena->free_list = leaf;
-    leaf = next;
+static node_t *arena_alloc_node(qtree_arena_t *arena) {
+  node_t *node = arena->free_nodes;
+  if (!node)
+    return arena_carve(arena, 1);
+  arena->free_nodes = node->next;
+  return node;
+}
+
+// 4 contiguous nodes, so a parent needs one pointer to reach all children.
+static node_t *arena_alloc_quad(qtree_arena_t *arena) {
+  node_t *quad = arena->free_quads;
+  if (!quad)
+    return arena_carve(arena, 4);
+  arena->free_quads = quad->next;
+  return quad;
+}
+
+// Returns a chain of single nodes (linked through ->next) to the free list.
+static void arena_release_chain(qtree_arena_t *arena, node_t *node) {
+  while (node) {
+    node_t *next = node->next;
+    node->next = arena->free_nodes;
+    arena->free_nodes = node;
+    node = next;
   }
 }
 
-static node_t *node_new(qtree_arena_t *arena, rect_t boundary) {
-  node_t *node = arena_alloc(arena);
+// Returns 4 leaf children, and any overflow chains they own, to the arena.
+static void arena_release_quad(qtree_arena_t *arena, node_t *quad) {
+  for (int q = 0; q < 4; ++q)
+    arena_release_chain(arena, quad[q].next);
+  quad->next = arena->free_quads;
+  arena->free_quads = quad;
+}
+
+static void node_init(node_t *node, rect_t boundary) {
   node->boundary = boundary;
   node->count    = 0;
   node->is_leaf  = true;
   node->next     = NULL;
-  node->nw = NULL;
-  node->ne = NULL;
-  node->se = NULL;
-  node->sw = NULL;
+}
+
+static node_t *node_new(qtree_arena_t *arena, rect_t boundary) {
+  node_t *node = arena_alloc_node(arena);
+  node_init(node, boundary);
   return node;
 }
 
@@ -168,22 +194,23 @@ static bool rect_can_split(rect_t r) {
   return r.x0 < r.x1 || r.y0 < r.y1;
 }
 
+// Child q covers the east half if bit 0 of q is set, the south half if bit 1
+// is set (see the IND_* enum).
 static void rect_divide(rect_t src, rect_t dest[4]) {
   const int mid_x = midpoint(src.x0, src.x1);
   const int mid_y = midpoint(src.y0, src.y1);
-  dest[IND_NW] = (rect_t){src.x0,     src.y0,     mid_x,   mid_y};
-  dest[IND_NE] = (rect_t){mid_x + 1,  src.y0,     src.x1,  mid_y};
-  dest[IND_SE] = (rect_t){mid_x + 1,  mid_y + 1,  src.x1,  src.y1};
-  dest[IND_SW] = (rect_t){src.x0,     mid_y + 1,  mid_x,   src.y1};
+  for (int q = 0; q < 4; ++q) {
+    const bool east = q & 1, south = q & 2;
+    dest[q] = (rect_t){east  ? mid_x + 1 : src.x0, south ? mid_y + 1 : src.y0,
+                       east  ? src.x1    : mid_x,  south ? src.y1    : mid_y};
+  }
 }
 
 static int point_get_quadrant(rect_t rect, point_t point) {
   const int mid_x = midpoint(rect.x0, rect.x1);
   const int mid_y = midpoint(rect.y0, rect.y1);
-  if (point.x <= mid_x && point.y <= mid_y) return IND_NW;
-  if (point.x >  mid_x && point.y <= mid_y) return IND_NE;
-  if (point.x >  mid_x && point.y >  mid_y) return IND_SE;
-  return IND_SW;
+  // YX bits -> Y: is below y-middle, X: is below x-middle
+  return (point.x > mid_x) | ((point.y > mid_y) << 1);
 }
 
 static bool rect_intersect(rect_t r1, rect_t r2) {
@@ -242,23 +269,30 @@ static bool node_insert(qtree_arena_t *arena, node_t *node, point_t point) {
 
   // Subdivide if still a leaf
   if (node->is_leaf) {
+    // points and children share storage: save the points before linking
+    point_t points[NODE_CAPACITY];
+    const int count = node->count;
+    for (int i = 0; i < count; ++i)
+      points[i] = node->points[i];
+
     rect_t subrects[4];
     rect_divide(node->boundary, subrects);
+    node_t *children = arena_alloc_quad(arena);
     for (int q = 0; q < 4; ++q)
-      node->children[q] = node_new(arena, subrects[q]);
-    node->is_leaf = false;
+      node_init(&children[q], subrects[q]);
+    node->children = children;
+    node->is_leaf  = false;
+    node->count    = 0;
 
     // Redistribute existing points into children
-    for (int i = 0; i < node->count; ++i) {
-      int q = point_get_quadrant(node->boundary, node->points[i]);
-      node_insert(arena, node->children[q], node->points[i]);
-    }
-    node->count = 0;
+    for (int i = 0; i < count; ++i)
+      node_insert(arena, &children[point_get_quadrant(node->boundary, points[i])],
+                  points[i]);
   }
 
   // Descend into the correct child
   int q = point_get_quadrant(node->boundary, point);
-  return node_insert(arena, node->children[q], point);
+  return node_insert(arena, &node->children[q], point);
 }
 
 bool qtree_insert(quadtree_t *qtree, point_t point) {
@@ -275,7 +309,7 @@ static int node_query(const node_t *node, rect_t search_area) {
         count += point_in_rect(n->points[i], search_area);
   } else {
     for (int q = 0; q < 4; ++q)
-      count += node_query(node->children[q], search_area);
+      count += node_query(&node->children[q], search_area);
   }
   return count;
 }
@@ -299,13 +333,13 @@ static void node_nearest_neighbor(const node_t *node, point_t query,
   } else {
     int q = point_get_quadrant(node->boundary, query);
     // Search the home quadrant first to get a good bound early
-    node_nearest_neighbor(node->children[q], query, nearest, best_dist_squared);
+    node_nearest_neighbor(&node->children[q], query, nearest, best_dist_squared);
     // Then prune and search the rest
     for (int i = 0; i < 4; ++i) {
       if (i == q) continue;
-      double dist_to_region = point_rect_distsq(query, node->children[i]->boundary);
+      double dist_to_region = point_rect_distsq(query, node->children[i].boundary);
       if (dist_to_region < *best_dist_squared)
-        node_nearest_neighbor(node->children[i], query, nearest, best_dist_squared);
+        node_nearest_neighbor(&node->children[i], query, nearest, best_dist_squared);
     }
   }
 }
@@ -319,7 +353,7 @@ double qtree_nearest_neighbor(const quadtree_t *qtree, point_t query, point_t *n
 // Descends by the point's coordinates, then matches by id within the leaf.
 static bool node_remove_point(node_t *node, point_t point) {
   while (!node->is_leaf)
-    node = node->children[point_get_quadrant(node->boundary, point)];
+    node = &node->children[point_get_quadrant(node->boundary, point)];
 
   for (node_t *n = node; n; n = n->next) {
     for (int i = 0; i < n->count; ++i) {
@@ -353,29 +387,30 @@ static void node_merge(qtree_arena_t *arena, node_t *node) {
 
   // Merge bottom-up: collapse the children first, so a whole sparse subtree
   // folds into this node in a single pass.
+  node_t *children = node->children;
   bool all_leaves = true;
   for (int q = 0; q < 4; ++q) {
-    node_merge(arena, node->children[q]);
-    all_leaves &= node->children[q]->is_leaf;
+    node_merge(arena, &children[q]);
+    all_leaves &= children[q].is_leaf;
   }
   if (!all_leaves)
     return;
 
   size_t point_count = 0;
   for (int q = 0; q < 4; ++q)
-    point_count += leaf_count(node->children[q]);
+    point_count += leaf_count(&children[q]);
   if (point_count > NODE_CAPACITY)
     return;
 
-  node->count = 0;
-  for (int q = 0; q < 4; ++q) {
-    for (node_t *n = node->children[q]; n; n = n->next)
+  // Writing points overwrites node->children (shared storage); we hold
+  // the children in a local.
+  node->is_leaf = true;
+  node->count   = 0;
+  for (int q = 0; q < 4; ++q)
+    for (const node_t *n = &children[q]; n; n = n->next)
       for (int j = 0; j < n->count; ++j)
         node->points[node->count++] = n->points[j];
-    arena_release_leaf(arena, node->children[q]);
-    node->children[q] = NULL;
-  }
-  node->is_leaf = true;
+  arena_release_quad(arena, children);
 }
 
 void qtree_merge(quadtree_t *qtree) { node_merge(&qtree->arena, qtree->root); }
