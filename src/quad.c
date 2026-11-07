@@ -169,14 +169,14 @@ static int leaf_count(const node_t *leaf) {
   return n;
 }
 
-static void node_insert(node_t *node, point_t point) {
+static bool node_insert(node_t *node, point_t point) {
   if (!point_in_rect(point, node->boundary))
-    return;
+    return false;
 
   if (node->is_leaf &&
       (node->count < NODE_CAPACITY || !rect_can_split(&node->boundary))) {
     leaf_append(node, point);
-    return;
+    return true;
   }
 
   // Subdivide if still a leaf
@@ -197,11 +197,11 @@ static void node_insert(node_t *node, point_t point) {
 
   // Descend into the correct child
   int q = point_get_quadrant(node->boundary, point);
-  node_insert(node->children[q], point);
+  return node_insert(node->children[q], point);
 }
 
-void qtree_insert(quadtree_t *qtree, point_t point) {
-  node_insert(qtree->root, point);
+bool qtree_insert(quadtree_t *qtree, point_t point) {
+  return node_insert(qtree->root, point);
 }
 
 static void node_query(node_t *node, rect_t search_area, int *count) {
@@ -257,32 +257,36 @@ double qtree_nearest_neighbor(quadtree_t *qtree, point_t query, point_t *nearest
   return best_dist_squared;
 }
 
-static void node_remove_point(node_t *node, point_t *point) {
-  if (node->is_leaf) {
-    for (node_t *n = node; n; n = n->next) {
-      for (int i = 0; i < n->count; ++i) {
-        if (n->points[i].id == point->id) {
-          n->points[i] = n->points[--n->count];
-          return;
-        }
+// Descends by the point's coordinates, then matches by id within the leaf.
+static bool node_remove_point(node_t *node, const point_t *point) {
+  while (!node->is_leaf)
+    node = node->children[point_get_quadrant(node->boundary, *point)];
+
+  for (node_t *n = node; n; n = n->next) {
+    for (int i = 0; i < n->count; ++i) {
+      if (n->points[i].id == point->id) {
+        n->points[i] = n->points[--n->count];
+        return true;
       }
     }
-  } else {
-    int q = point_get_quadrant(node->boundary, *point);
-    node_remove_point(node->children[q], point);
   }
+  return false;
 }
 
-void qtree_remove_point(quadtree_t *qtree, point_t *point) {
-  node_remove_point(qtree->root, point);
+bool qtree_remove_point(quadtree_t *qtree, const point_t *point) {
+  if (!point_in_rect(*point, qtree->root->boundary))
+    return false;
+  return node_remove_point(qtree->root, point);
 }
 
-void qtree_update_point(quadtree_t *qtree, point_t *old_point, point_t *new_point) {
-  node_remove_point(qtree->root, old_point);
-  old_point->x  = new_point->x;
-  old_point->y  = new_point->y;
-  old_point->id = new_point->id;
-  node_insert(qtree->root, *old_point);
+bool qtree_update_point(quadtree_t *qtree, const point_t *old_point,
+                        const point_t *new_point) {
+  // Check the destination first so a failed update leaves the tree unchanged.
+  if (!point_in_rect(*new_point, qtree->root->boundary))
+    return false;
+  if (!qtree_remove_point(qtree, old_point))
+    return false;
+  return node_insert(qtree->root, *new_point); // always true: bounds checked
 }
 
 static void node_merge(node_t *node) {

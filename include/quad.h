@@ -1,7 +1,7 @@
 #ifndef QUAD_H
 #define QUAD_H
 
-#include "stdbool.h"
+#include <stdbool.h>
 #include <stddef.h> // size_t
 
 enum {
@@ -59,11 +59,23 @@ typedef struct quadtree_t {
 } quadtree_t;
 
 void qtree_new(quadtree_t *qtree, rect_t boundary);
-void qtree_insert(quadtree_t *qtree, point_t point);
+/** Returns false (and stores nothing) if the point lies outside the root. */
+bool qtree_insert(quadtree_t *qtree, point_t point);
 void qtree_query(quadtree_t *qtree, rect_t search_area, int *count);
 double qtree_nearest_neighbor(quadtree_t *qtree, point_t query, point_t *nearest);
-void qtree_remove_point(quadtree_t *qtree, point_t *point);
-void qtree_update_point(quadtree_t *qtree, point_t *old_point, point_t *new_point);
+/**
+ * Removes the point with point->id. point->x/y must be the coordinates it was
+ * inserted with, since they are used to find its leaf.
+ * Returns false if no such point was found.
+ */
+bool qtree_remove_point(quadtree_t *qtree, const point_t *point);
+/**
+ * Moves old_point (located as in qtree_remove_point) to new_point.
+ * Returns false and leaves the tree unchanged if old_point isn't found or
+ * new_point lies outside the root. Neither argument is modified.
+ */
+bool qtree_update_point(quadtree_t *qtree, const point_t *old_point,
+                        const point_t *new_point);
 void qtree_merge(quadtree_t *qtree);
 /**
  * Frees the entire arenaa - call once at shutdown.
