@@ -75,8 +75,10 @@ static void _node_graph(node_t* node) {
     if (node == NULL) return;
     if (_node_is_leaf(node)) {
         ppm_write_rect(&node->boundary);
-        for (int i = 0; i < node->count; ++i) {
-            ppm_write_point(&node->points[i]);
+        for (node_t* n = node; n != NULL; n = n->next) {
+            for (int i = 0; i < n->count; ++i) {
+                ppm_write_point(&n->points[i]);
+            }
         }
     } else {
         _node_graph(node->nw);

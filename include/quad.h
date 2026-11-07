@@ -32,6 +32,9 @@ typedef struct node_t {
     point_t points[NODE_CAPACITY];
     int count;
     bool is_leaf; // cached flag avoids repeated 4-pointer check
+    // Overflow chain: only used by leaves whose boundary is a single cell
+    // (can't be split further) once they hold more than NODE_CAPACITY points.
+    struct node_t *next;
     union {
         struct {
             struct node_t *nw;
