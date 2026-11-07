@@ -257,51 +257,67 @@ static int leaf_count(const node_t *leaf) {
   return n;
 }
 
-static bool node_insert(qtree_arena_t *arena, node_t *node, point_t point) {
-  if (!point_in_rect(point, node->boundary))
-    return false;
+// Turns a full leaf into an internal node with 4 empty leaf children and
+// hands its points down. The node's count is kept: for an internal node it is
+// the number of points in its whole subtree.
+static void node_split(qtree_arena_t *arena, node_t *node) {
+  // points and children share storage: save the points before linking
+  point_t points[NODE_CAPACITY];
+  const int count = node->count;
+  for (int i = 0; i < count; ++i)
+    points[i] = node->points[i];
 
-  if (node->is_leaf &&
-      (node->count < NODE_CAPACITY || !rect_can_split(node->boundary))) {
-    leaf_append(arena, node, point);
-    return true;
+  rect_t subrects[4];
+  rect_divide(node->boundary, subrects);
+  node_t *children = arena_alloc_quad(arena);
+  for (int q = 0; q < 4; ++q)
+    node_init(&children[q], subrects[q]);
+  node->children = children;
+  node->is_leaf  = false;
+
+  // At most NODE_CAPACITY points into empty leaves, so a plain append fits.
+  for (int i = 0; i < count; ++i) {
+    node_t *child = &children[point_get_quadrant(node->boundary, points[i])];
+    child->points[child->count++] = points[i];
   }
+}
 
-  // Subdivide if still a leaf
-  if (node->is_leaf) {
-    // points and children share storage: save the points before linking
-    point_t points[NODE_CAPACITY];
-    const int count = node->count;
-    for (int i = 0; i < count; ++i)
-      points[i] = node->points[i];
-
-    rect_t subrects[4];
-    rect_divide(node->boundary, subrects);
-    node_t *children = arena_alloc_quad(arena);
-    for (int q = 0; q < 4; ++q)
-      node_init(&children[q], subrects[q]);
-    node->children = children;
-    node->is_leaf  = false;
-    node->count    = 0;
-
-    // Redistribute existing points into children
-    for (int i = 0; i < count; ++i)
-      node_insert(arena, &children[point_get_quadrant(node->boundary, points[i])],
-                  points[i]);
+// Caller has checked the point lies inside node->boundary; every child picked
+// by point_get_quadrant() then contains it too, so no further bounds checks.
+static void node_insert(qtree_arena_t *arena, node_t *node, point_t point) {
+  for (;;) {
+    if (node->is_leaf) {
+      if (node->count < NODE_CAPACITY || !rect_can_split(node->boundary)) {
+        leaf_append(arena, node, point);
+        return;
+      }
+      node_split(arena, node);
+    }
+    node->count++; // one more point in this subtree
+    node = &node->children[point_get_quadrant(node->boundary, point)];
   }
-
-  // Descend into the correct child
-  int q = point_get_quadrant(node->boundary, point);
-  return node_insert(arena, &node->children[q], point);
 }
 
 bool qtree_insert(quadtree_t *qtree, point_t point) {
-  return node_insert(&qtree->arena, qtree->root, point);
+  if (!point_in_rect(point, qtree->root->boundary))
+    return false;
+  node_insert(&qtree->arena, qtree->root, point);
+  return true;
+}
+
+// inner lies completely inside outer
+static bool rect_contains(rect_t outer, rect_t inner) {
+  return outer.x0 <= inner.x0 && inner.x1 <= outer.x1 &&
+         outer.y0 <= inner.y0 && inner.y1 <= outer.y1;
 }
 
 static int node_query(const node_t *node, rect_t search_area) {
   if (!rect_intersect(node->boundary, search_area))
     return 0;
+  // Fully covered: every point below counts, no need to test them.
+  if (rect_contains(search_area, node->boundary))
+    return node->is_leaf ? leaf_count(node) : node->count;
+
   int count = 0;
   if (node->is_leaf) {
     for (const node_t *n = node; n; n = n->next)
@@ -330,17 +346,25 @@ static void node_nearest_neighbor(const node_t *node, point_t query,
         }
       }
     }
-  } else {
-    int q = point_get_quadrant(node->boundary, query);
-    // Search the home quadrant first to get a good bound early
+    return;
+  }
+
+  // Visit children nearest-first: the closest one (distance 0 if it holds
+  // the query) tightens the bound early, so the far ones get pruned.
+  double dist[4];
+  int order[4];
+  for (int q = 0; q < 4; ++q) {
+    dist[q] = point_rect_distsq(query, node->children[q].boundary);
+    int i = q;
+    for (; i > 0 && dist[order[i - 1]] > dist[q]; --i) // insertion sort
+      order[i] = order[i - 1];
+    order[i] = q;
+  }
+  for (int i = 0; i < 4; ++i) {
+    const int q = order[i];
+    if (dist[q] >= *best_dist_squared)
+      break; // sorted, so the rest are at least as far
     node_nearest_neighbor(&node->children[q], query, nearest, best_dist_squared);
-    // Then prune and search the rest
-    for (int i = 0; i < 4; ++i) {
-      if (i == q) continue;
-      double dist_to_region = point_rect_distsq(query, node->children[i].boundary);
-      if (dist_to_region < *best_dist_squared)
-        node_nearest_neighbor(&node->children[i], query, nearest, best_dist_squared);
-    }
   }
 }
 
@@ -350,35 +374,69 @@ double qtree_nearest_neighbor(const quadtree_t *qtree, point_t query, point_t *n
   return best_dist_squared;
 }
 
-// Descends by the point's coordinates, then matches by id within the leaf.
-static bool node_remove_point(node_t *node, point_t point) {
-  while (!node->is_leaf)
-    node = &node->children[point_get_quadrant(node->boundary, point)];
-
-  for (node_t *n = node; n; n = n->next) {
-    for (int i = 0; i < n->count; ++i) {
-      if (n->points[i].id == point.id) {
-        n->points[i] = n->points[--n->count];
-        return true;
+// Finds the point with this id in a leaf or its overflow chain.
+static point_t *leaf_find(node_t *leaf, size_t id, node_t **owner) {
+  for (node_t *n = leaf; n; n = n->next)
+    for (int i = 0; i < n->count; ++i)
+      if (n->points[i].id == id) {
+        *owner = n;
+        return &n->points[i];
       }
-    }
-  }
-  return false;
+  return NULL;
 }
 
+// Removes the point with this id from a leaf or its overflow chain.
+static bool leaf_remove(node_t *leaf, size_t id) {
+  node_t *owner;
+  point_t *slot = leaf_find(leaf, id, &owner);
+  if (!slot)
+    return false;
+  *slot = owner->points[--owner->count];
+  return true;
+}
+
+static node_t *find_leaf(node_t *node, point_t point) {
+  while (!node->is_leaf)
+    node = &node->children[point_get_quadrant(node->boundary, point)];
+  return node;
+}
+
+// Descends by the point's coordinates, then matches by id within the leaf.
 bool qtree_remove_point(quadtree_t *qtree, point_t point) {
   if (!point_in_rect(point, qtree->root->boundary))
     return false;
-  return node_remove_point(qtree->root, point);
+  // Update the subtree counts on the way down, assuming the point is there;
+  // in the rare case it isn't, walk the same path again to undo that.
+  node_t *node = qtree->root;
+  for (; !node->is_leaf;
+       node = &node->children[point_get_quadrant(node->boundary, point)])
+    node->count--;
+  if (leaf_remove(node, point.id))
+    return true;
+  for (node = qtree->root; !node->is_leaf;
+       node = &node->children[point_get_quadrant(node->boundary, point)])
+    node->count++;
+  return false;
 }
 
 bool qtree_update_point(quadtree_t *qtree, point_t old_point, point_t new_point) {
-  // Check the destination first so a failed update leaves the tree unchanged.
-  if (!point_in_rect(new_point, qtree->root->boundary))
+  // Check both ends first so a failed update leaves the tree unchanged.
+  if (!point_in_rect(old_point, qtree->root->boundary) ||
+      !point_in_rect(new_point, qtree->root->boundary))
     return false;
+  // Small moves usually stay inside the same leaf: overwrite in place, with
+  // no remove/insert and no subtree counts to touch.
+  node_t *leaf = find_leaf(qtree->root, old_point), *owner;
+  if (point_in_rect(new_point, leaf->boundary)) {
+    point_t *slot = leaf_find(leaf, old_point.id, &owner);
+    if (slot)
+      *slot = new_point;
+    return slot != NULL;
+  }
   if (!qtree_remove_point(qtree, old_point))
     return false;
-  return node_insert(&qtree->arena, qtree->root, new_point); // always true: bounds checked
+  node_insert(&qtree->arena, qtree->root, new_point);
+  return true;
 }
 
 static void node_merge(qtree_arena_t *arena, node_t *node) {
@@ -393,13 +451,7 @@ static void node_merge(qtree_arena_t *arena, node_t *node) {
     node_merge(arena, &children[q]);
     all_leaves &= children[q].is_leaf;
   }
-  if (!all_leaves)
-    return;
-
-  size_t point_count = 0;
-  for (int q = 0; q < 4; ++q)
-    point_count += leaf_count(&children[q]);
-  if (point_count > NODE_CAPACITY)
+  if (!all_leaves || node->count > NODE_CAPACITY) // count = subtree total
     return;
 
   // Writing points overwrites node->children (shared storage); we hold

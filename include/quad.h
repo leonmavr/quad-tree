@@ -33,7 +33,8 @@ typedef struct rect_t {
 
 typedef struct node_t {
     rect_t boundary;
-    int count;   // points stored in this node (leaves only)
+    int count;   // leaf: points stored in this node (not its overflow chain)
+                 // internal: points in the whole subtree
     bool is_leaf;
     // Overflow chain: only used by leaves whose boundary is a single cell
     // (can't be split further) once they hold more than NODE_CAPACITY points.
