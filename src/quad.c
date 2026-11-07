@@ -289,31 +289,31 @@ static void node_merge(node_t *node) {
   if (node->is_leaf)
     return;
 
+  // Merge bottom-up: collapse the children first, so a whole sparse subtree
+  // folds into this node in a single pass.
   bool all_leaves = true;
   for (int q = 0; q < 4; ++q) {
-    if (!node->children[q]->is_leaf) {
-      node_merge(node->children[q]);
-      all_leaves = false;
-    }
+    node_merge(node->children[q]);
+    all_leaves &= node->children[q]->is_leaf;
   }
+  if (!all_leaves)
+    return;
 
-  if (all_leaves) {
-    size_t point_count = 0;
-    for (int q = 0; q < 4; ++q)
-      point_count += leaf_count(node->children[q]);
+  size_t point_count = 0;
+  for (int q = 0; q < 4; ++q)
+    point_count += leaf_count(node->children[q]);
+  if (point_count > NODE_CAPACITY)
+    return;
 
-    if (point_count <= NODE_CAPACITY) {
-      node->count = 0;
-      for (int q = 0; q < 4; ++q) {
-        for (node_t *n = node->children[q]; n; n = n->next)
-          for (int j = 0; j < n->count; ++j)
-            node->points[node->count++] = n->points[j];
-        // It was arena allocated so no need to call free()
-        node->children[q] = NULL;
-      }
-      node->is_leaf = true;
-    }
+  node->count = 0;
+  for (int q = 0; q < 4; ++q) {
+    for (node_t *n = node->children[q]; n; n = n->next)
+      for (int j = 0; j < n->count; ++j)
+        node->points[node->count++] = n->points[j];
+    // It was arena allocated so no need to call free()
+    node->children[q] = NULL;
   }
+  node->is_leaf = true;
 }
 
 void qtree_merge(quadtree_t *qtree) { node_merge(qtree->root); }
