@@ -59,7 +59,6 @@ int main() {
     rect_t boundary = {.x0=0, .y0=0, .x1=400, .y1=400};
     particle_t particles[NPARTICLES];
     quadtree_t qtree;
-    const int arena_capacity = 4 * NPARTICLES + 1;
     int render_every = 1;
 #ifdef USE_PPM
     viz_t viz = {
@@ -87,7 +86,7 @@ int main() {
 #endif
     render_every = env_positive_int("QTREE_RENDER_EVERY", render_every);
     viz.viz_init(boundary.x1, boundary.y1);
-    qtree_arena_init(arena_capacity);
+    qtree_new(&qtree, boundary);
     // to graph the particles
     void (*qtree_graph)(quadtree_t*) = viz.viz_qtree_graph;
     for (int i = 0; i < NPARTICLES; ++i) {
@@ -99,8 +98,7 @@ int main() {
         particles[i].accelerationx = 0;
     }
     for (int i = 0; i < niters; ++i) {
-        qtree_arena_reset();
-        qtree_new(&qtree, boundary);
+        qtree_clear(&qtree);
         for (int ip = 0; ip < NPARTICLES; ++ip) {
             particles[ip].velx += particles[ip].accelerationx * dt;
             particles[ip].velx = CLAMP(particles[ip].velx, 20);

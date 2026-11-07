@@ -16,7 +16,6 @@ int main(int argc, char **argv) {
   // Assign unique ids so are_points_equal works correctly
   for (int i = 0; i < 10; ++i) points[i].id = i;
 
-  qtree_arena_init(256);
   quadtree_t qtree;
   qtree_new(&qtree, boundary);
   for (int i = 0; i < sizeof(points) / sizeof(points[0]); ++i)

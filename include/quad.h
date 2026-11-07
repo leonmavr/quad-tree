@@ -47,18 +47,32 @@ typedef struct node_t {
 } node_t;
 
 /**
- * Arena allocator - call qtree_arena_init() once at startup, then
- * qtree_arena_reset() each frame instead of qtree_del() + qtree_new().
- * Call it once or on resize.
+ * Per-tree node arena (internal - don't touch the fields). Nodes live in a
+ * chain of blocks that only grows, so node pointers stay valid; nodes freed
+ * by qtree_merge() go on a free list and are reused by later inserts.
  */
-void qtree_arena_init(int capacity);
-void qtree_arena_reset(void);        // resets pool for reuse
+typedef struct qtree_block_t qtree_block_t;
+typedef struct qtree_arena_t {
+    qtree_block_t *head;    // first (smallest) block
+    qtree_block_t *current; // block new nodes are carved from
+    node_t *free_list;      // recycled nodes, linked through ->next
+} qtree_arena_t;
 
 typedef struct quadtree_t {
     node_t *root;
+    qtree_arena_t arena;
 } quadtree_t;
 
+/**
+ * Creates an empty tree that owns its own memory. Each tree is independent,
+ * so several can exist at once. Pair every qtree_new() with a qtree_del().
+ */
 void qtree_new(quadtree_t *qtree, rect_t boundary);
+/**
+ * Removes all points but keeps the tree's memory and boundary - cheap way to
+ * rebuild the tree every frame.
+ */
+void qtree_clear(quadtree_t *qtree);
 /** Returns false (and stores nothing) if the point lies outside the root. */
 bool qtree_insert(quadtree_t *qtree, point_t point);
 void qtree_query(quadtree_t *qtree, rect_t search_area, int *count);
@@ -77,9 +91,7 @@ bool qtree_remove_point(quadtree_t *qtree, const point_t *point);
 bool qtree_update_point(quadtree_t *qtree, const point_t *old_point,
                         const point_t *new_point);
 void qtree_merge(quadtree_t *qtree);
-/**
- * Frees the entire arenaa - call once at shutdown.
- */
+/** Frees all memory owned by the tree; qtree->root becomes NULL. */
 void qtree_del(quadtree_t *qtree);
 extern void (*qtree_graph)(quadtree_t *);
 
