@@ -1,13 +1,9 @@
 #include "quad.h"
-#include <assert.h>
 #include <float.h> // DBL_MAX
-#include <stdbool.h>
-#include <stddef.h> // size_t
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h> // memcpy
-#include <unistd.h>
 
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 
 // ---------------------------------------------------------------------------
@@ -84,9 +80,9 @@ static void arena_release_leaf(qtree_arena_t *arena, node_t *leaf) {
   }
 }
 
-static node_t *node_new(qtree_arena_t *arena, const rect_t *boundary) {
+static node_t *node_new(qtree_arena_t *arena, rect_t boundary) {
   node_t *node = arena_alloc(arena);
-  node->boundary = *boundary;
+  node->boundary = boundary;
   node->count    = 0;
   node->is_leaf  = true;
   node->next     = NULL;
@@ -168,17 +164,17 @@ static int midpoint(int lo, int hi) {
 }
 
 // A rect can only be split if it is wider or taller than one cell.
-static bool rect_can_split(const rect_t *r) {
-  return r->x0 < r->x1 || r->y0 < r->y1;
+static bool rect_can_split(rect_t r) {
+  return r.x0 < r.x1 || r.y0 < r.y1;
 }
 
-static void rect_divide(rect_t *src, rect_t *dest) {
-  const int mid_x = midpoint(src->x0, src->x1);
-  const int mid_y = midpoint(src->y0, src->y1);
-  dest[IND_NW] = (rect_t){src->x0,    src->y0,    mid_x,    mid_y};
-  dest[IND_NE] = (rect_t){mid_x + 1,  src->y0,    src->x1,  mid_y};
-  dest[IND_SE] = (rect_t){mid_x + 1,  mid_y + 1,  src->x1,  src->y1};
-  dest[IND_SW] = (rect_t){src->x0,    mid_y + 1,  mid_x,    src->y1};
+static void rect_divide(rect_t src, rect_t dest[4]) {
+  const int mid_x = midpoint(src.x0, src.x1);
+  const int mid_y = midpoint(src.y0, src.y1);
+  dest[IND_NW] = (rect_t){src.x0,     src.y0,     mid_x,   mid_y};
+  dest[IND_NE] = (rect_t){mid_x + 1,  src.y0,     src.x1,  mid_y};
+  dest[IND_SE] = (rect_t){mid_x + 1,  mid_y + 1,  src.x1,  src.y1};
+  dest[IND_SW] = (rect_t){src.x0,     mid_y + 1,  mid_x,   src.y1};
 }
 
 static int point_get_quadrant(rect_t rect, point_t point) {
@@ -190,26 +186,29 @@ static int point_get_quadrant(rect_t rect, point_t point) {
   return IND_SW;
 }
 
-static bool rect_intersect(rect_t *r1, rect_t *r2) {
-  int left   = r1->x0 > r2->x0 ? r1->x0 : r2->x0;
-  int right  = r1->x1 < r2->x1 ? r1->x1 : r2->x1;
-  int top    = r1->y0 > r2->y0 ? r1->y0 : r2->y0;
-  int bottom = r1->y1 < r2->y1 ? r1->y1 : r2->y1;
-  return left <= right && top <= bottom;
+static bool rect_intersect(rect_t r1, rect_t r2) {
+  return MAX(r1.x0, r2.x0) <= MIN(r1.x1, r2.x1) &&
+         MAX(r1.y0, r2.y0) <= MIN(r1.y1, r2.y1);
 }
 
 // ---------------------------------------------------------------------------
 // Tree operations
 // ---------------------------------------------------------------------------
-void qtree_new(quadtree_t *qtree, rect_t boundary) {
+void qtree_new_checked(quadtree_t *qtree, rect_t boundary, size_t node_size) {
+  if (node_size != sizeof(node_t)) {
+    fprintf(stderr, "quadtree: node_t size mismatch (caller %zu, library %zu) - "
+                    "compile everything with the same NODE_CAPACITY\n",
+            node_size, sizeof(node_t));
+    abort();
+  }
   arena_init(&qtree->arena);
-  qtree->root = node_new(&qtree->arena, &boundary);
+  qtree->root = node_new(&qtree->arena, boundary);
 }
 
 void qtree_clear(quadtree_t *qtree) {
   const rect_t boundary = qtree->root->boundary;
   arena_reset(&qtree->arena);
-  qtree->root = node_new(&qtree->arena, &boundary);
+  qtree->root = node_new(&qtree->arena, boundary);
 }
 
 // Appends to the first non-full node of a leaf's overflow chain, growing the
@@ -217,7 +216,7 @@ void qtree_clear(quadtree_t *qtree) {
 static void leaf_append(qtree_arena_t *arena, node_t *leaf, point_t point) {
   while (leaf->count == NODE_CAPACITY) {
     if (!leaf->next)
-      leaf->next = node_new(arena, &leaf->boundary);
+      leaf->next = node_new(arena, leaf->boundary);
     leaf = leaf->next;
   }
   leaf->points[leaf->count++] = point;
@@ -236,7 +235,7 @@ static bool node_insert(qtree_arena_t *arena, node_t *node, point_t point) {
     return false;
 
   if (node->is_leaf &&
-      (node->count < NODE_CAPACITY || !rect_can_split(&node->boundary))) {
+      (node->count < NODE_CAPACITY || !rect_can_split(node->boundary))) {
     leaf_append(arena, node, point);
     return true;
   }
@@ -244,9 +243,9 @@ static bool node_insert(qtree_arena_t *arena, node_t *node, point_t point) {
   // Subdivide if still a leaf
   if (node->is_leaf) {
     rect_t subrects[4];
-    rect_divide(&node->boundary, subrects);
+    rect_divide(node->boundary, subrects);
     for (int q = 0; q < 4; ++q)
-      node->children[q] = node_new(arena, &subrects[q]);
+      node->children[q] = node_new(arena, subrects[q]);
     node->is_leaf = false;
 
     // Redistribute existing points into children
@@ -266,29 +265,27 @@ bool qtree_insert(quadtree_t *qtree, point_t point) {
   return node_insert(&qtree->arena, qtree->root, point);
 }
 
-static void node_query(node_t *node, rect_t search_area, int *count) {
-  if (!rect_intersect(&node->boundary, &search_area))
-    return;
+static int node_query(const node_t *node, rect_t search_area) {
+  if (!rect_intersect(node->boundary, search_area))
+    return 0;
+  int count = 0;
   if (node->is_leaf) {
     for (const node_t *n = node; n; n = n->next)
       for (int i = 0; i < n->count; ++i)
-        if (point_in_rect(n->points[i], search_area))
-          (*count)++;
+        count += point_in_rect(n->points[i], search_area);
   } else {
     for (int q = 0; q < 4; ++q)
-      node_query(node->children[q], search_area, count);
+      count += node_query(node->children[q], search_area);
   }
+  return count;
 }
 
-void qtree_query(quadtree_t *qtree, rect_t search_area, int *count) {
-  node_query(qtree->root, search_area, count);
+int qtree_query(const quadtree_t *qtree, rect_t search_area) {
+  return node_query(qtree->root, search_area);
 }
 
-static void node_nearest_neighbor(node_t *node, point_t query, point_t *nearest,
-                                  double *best_dist_squared) {
-  if (!node)
-    return;
-
+static void node_nearest_neighbor(const node_t *node, point_t query,
+                                  point_t *nearest, double *best_dist_squared) {
   if (node->is_leaf) {
     for (const node_t *n = node; n; n = n->next) {
       for (int i = 0; i < n->count; ++i) {
@@ -313,20 +310,20 @@ static void node_nearest_neighbor(node_t *node, point_t query, point_t *nearest,
   }
 }
 
-double qtree_nearest_neighbor(quadtree_t *qtree, point_t query, point_t *nearest) {
+double qtree_nearest_neighbor(const quadtree_t *qtree, point_t query, point_t *nearest) {
   double best_dist_squared = DBL_MAX;
   node_nearest_neighbor(qtree->root, query, nearest, &best_dist_squared);
   return best_dist_squared;
 }
 
 // Descends by the point's coordinates, then matches by id within the leaf.
-static bool node_remove_point(node_t *node, const point_t *point) {
+static bool node_remove_point(node_t *node, point_t point) {
   while (!node->is_leaf)
-    node = node->children[point_get_quadrant(node->boundary, *point)];
+    node = node->children[point_get_quadrant(node->boundary, point)];
 
   for (node_t *n = node; n; n = n->next) {
     for (int i = 0; i < n->count; ++i) {
-      if (n->points[i].id == point->id) {
+      if (n->points[i].id == point.id) {
         n->points[i] = n->points[--n->count];
         return true;
       }
@@ -335,20 +332,19 @@ static bool node_remove_point(node_t *node, const point_t *point) {
   return false;
 }
 
-bool qtree_remove_point(quadtree_t *qtree, const point_t *point) {
-  if (!point_in_rect(*point, qtree->root->boundary))
+bool qtree_remove_point(quadtree_t *qtree, point_t point) {
+  if (!point_in_rect(point, qtree->root->boundary))
     return false;
   return node_remove_point(qtree->root, point);
 }
 
-bool qtree_update_point(quadtree_t *qtree, const point_t *old_point,
-                        const point_t *new_point) {
+bool qtree_update_point(quadtree_t *qtree, point_t old_point, point_t new_point) {
   // Check the destination first so a failed update leaves the tree unchanged.
-  if (!point_in_rect(*new_point, qtree->root->boundary))
+  if (!point_in_rect(new_point, qtree->root->boundary))
     return false;
   if (!qtree_remove_point(qtree, old_point))
     return false;
-  return node_insert(&qtree->arena, qtree->root, *new_point); // always true: bounds checked
+  return node_insert(&qtree->arena, qtree->root, new_point); // always true: bounds checked
 }
 
 static void node_merge(qtree_arena_t *arena, node_t *node) {

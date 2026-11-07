@@ -47,9 +47,8 @@ int main(int argc, char **argv) {
   //-------------------------------------------------------------------------
   // Rectangular query
   //-------------------------------------------------------------------------
-  int how_many = 0;
   rect_t search_area = {100, 50, 200, 100};
-  qtree_query(&qtree, search_area, &how_many);
+  int how_many = qtree_query(&qtree, search_area);
   NTEST_ASSERT(how_many == 4);
 
   //-------------------------------------------------------------------------
@@ -57,7 +56,7 @@ int main(int argc, char **argv) {
   //-------------------------------------------------------------------------
   point_t pnew = {90, 90, 99};
   // {108, 120} -> {90, 90}
-  qtree_update_point(&qtree, &points[6], &pnew);
+  qtree_update_point(&qtree, points[6], pnew);
   NTEST_ASSERT(qtree.root->nw->sw->points[0].id == pnew.id);
   NTEST_ASSERT(qtree.root->sw->ne->count == 1 &&
                qtree.root->nw->sw->count == 1);
@@ -78,7 +77,7 @@ int main(int argc, char **argv) {
   // Point deletion
   //-------------------------------------------------------------------------
   NTEST_ASSERT(qtree.root->nw->se->sw->count == 1);
-  qtree_remove_point(&qtree, &points[5]);
+  qtree_remove_point(&qtree, points[5]);
   NTEST_ASSERT(qtree.root->nw->se->sw->count == 0);
 
   qtree_del(&qtree);

@@ -11,7 +11,9 @@ enum {
     IND_SW
 };
 
-// Maximum number of points per leaf node
+// Maximum number of points per leaf node. It changes the size of node_t, so
+// the library and everything including this header must use the same value
+// (qtree_new() aborts with a message if they don't).
 #ifndef NODE_CAPACITY
 #define NODE_CAPACITY 4
 #endif
@@ -66,8 +68,12 @@ typedef struct quadtree_t {
 /**
  * Creates an empty tree that owns its own memory. Each tree is independent,
  * so several can exist at once. Pair every qtree_new() with a qtree_del().
+ * (A macro so the library can check the caller's NODE_CAPACITY matches.)
  */
-void qtree_new(quadtree_t *qtree, rect_t boundary);
+// Variadic so a compound literal boundary like (rect_t){0, 0, 9, 9} works.
+#define qtree_new(qtree, ...) \
+    qtree_new_checked((qtree), (__VA_ARGS__), sizeof(node_t))
+void qtree_new_checked(quadtree_t *qtree, rect_t boundary, size_t node_size);
 /**
  * Removes all points but keeps the tree's memory and boundary - cheap way to
  * rebuild the tree every frame.
@@ -75,24 +81,29 @@ void qtree_new(quadtree_t *qtree, rect_t boundary);
 void qtree_clear(quadtree_t *qtree);
 /** Returns false (and stores nothing) if the point lies outside the root. */
 bool qtree_insert(quadtree_t *qtree, point_t point);
-void qtree_query(quadtree_t *qtree, rect_t search_area, int *count);
-double qtree_nearest_neighbor(quadtree_t *qtree, point_t query, point_t *nearest);
+/** Returns the number of points inside search_area (edges inclusive). */
+int qtree_query(const quadtree_t *qtree, rect_t search_area);
 /**
- * Removes the point with point->id. point->x/y must be the coordinates it was
+ * Finds the point closest to query and returns the squared distance to it.
+ * A point equal to query (e.g. the query itself, if it's in the tree) counts.
+ * On an empty tree returns DBL_MAX and leaves *nearest unchanged.
+ */
+double qtree_nearest_neighbor(const quadtree_t *qtree, point_t query,
+                              point_t *nearest);
+/**
+ * Removes the point with point.id. point.x/y must be the coordinates it was
  * inserted with, since they are used to find its leaf.
  * Returns false if no such point was found.
  */
-bool qtree_remove_point(quadtree_t *qtree, const point_t *point);
+bool qtree_remove_point(quadtree_t *qtree, point_t point);
 /**
  * Moves old_point (located as in qtree_remove_point) to new_point.
  * Returns false and leaves the tree unchanged if old_point isn't found or
- * new_point lies outside the root. Neither argument is modified.
+ * new_point lies outside the root.
  */
-bool qtree_update_point(quadtree_t *qtree, const point_t *old_point,
-                        const point_t *new_point);
+bool qtree_update_point(quadtree_t *qtree, point_t old_point, point_t new_point);
 void qtree_merge(quadtree_t *qtree);
 /** Frees all memory owned by the tree; qtree->root becomes NULL. */
 void qtree_del(quadtree_t *qtree);
-extern void (*qtree_graph)(quadtree_t *);
 
 #endif // QUAD_H
